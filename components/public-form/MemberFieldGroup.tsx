@@ -11,7 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/public-form/SectionCard";
 import { FileUploadField } from "@/components/public-form/FileUploadField";
 import { BirthDateWheelPicker } from "@/components/public-form/BirthDateWheelPicker";
 import type { RegistrationFormInput } from "@/lib/validation/registration-schema";
@@ -27,6 +27,7 @@ export function MemberFieldGroup({
   sessionId,
   identityTypes,
   feeCategories,
+  hideFeeCategory,
   onRemove,
   removable,
 }: {
@@ -36,6 +37,9 @@ export function MemberFieldGroup({
   sessionId: string;
   identityTypes: IdentityType[];
   feeCategories: FeeCategory[];
+  // true for registration categories marked 整組免費 (e.g. 自搭帳篷) — the whole group
+  // is unconditionally free, so there's nothing to apply for and nothing to review.
+  hideFeeCategory?: boolean;
   onRemove: () => void;
   removable: boolean;
 }) {
@@ -62,18 +66,23 @@ export function MemberFieldGroup({
     : undefined;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">
-          {index === 0 ? "聯絡人（成員 1）" : `成員 ${index + 1}`}
-        </CardTitle>
-        {removable && (
-          <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+    <SectionCard
+      title={index === 0 ? "聯絡人（成員 1）" : `成員 ${index + 1}`}
+      action={
+        removable && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-secondary-foreground hover:bg-secondary-foreground/10"
+            onClick={onRemove}
+          >
             移除
           </Button>
-        )}
-      </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
+        )
+      }
+      contentClassName="grid gap-4 sm:grid-cols-2"
+    >
         <FormField
           control={control}
           name={`members.${index}.name`}
@@ -183,32 +192,39 @@ export function MemberFieldGroup({
           )}
         />
 
-        <FormField
-          control={control}
-          name={`members.${index}.fee_category_id`}
-          render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>是否申請免付費/減免資格（選填）</FormLabel>
-              <FormControl>
-                <select
-                  {...field}
-                  className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
-                >
-                  <option value="">不申請</option>
-                  {feeCategories.map((fc) => (
-                    <option key={fc.id} value={fc.id}>
-                      {fc.code ? `${fc.code} ` : ""}
-                      {fc.label}（{fc.applies_to}）
-                    </option>
-                  ))}
-                </select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!hideFeeCategory && (
+          <FormField
+            control={control}
+            name={`members.${index}.fee_category_id`}
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>是否申請免付費/減免資格（選填）</FormLabel>
+                <FormControl>
+                  <select
+                    {...field}
+                    className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
+                  >
+                    <option value="">不申請</option>
+                    {feeCategories
+                      // Inactive categories are hidden from new selections, but a
+                      // member's already-selected (now-deactivated) category must stay
+                      // visible here or their existing choice would silently vanish.
+                      .filter((fc) => fc.is_active || fc.id === feeCategoryId)
+                      .map((fc) => (
+                        <option key={fc.id} value={fc.id}>
+                          {fc.code ? `${fc.code} ` : ""}
+                          {fc.label}（{fc.applies_to}）
+                        </option>
+                      ))}
+                  </select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
-        {requiredDocType && (
+        {!hideFeeCategory && requiredDocType && (
           <FormField
             control={control}
             name={`members.${index}.files`}
@@ -306,7 +322,6 @@ export function MemberFieldGroup({
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

@@ -17,6 +17,20 @@ export interface ReviewResultEmailInput {
   manualTransferAccountInfo: string;
 }
 
+// Fallback only — matches the row seeded by the email_templates migration, used if
+// that row was somehow deleted (getEmailTemplate's last resort).
+export const DEFAULT_REVIEW_RESULT_SUBJECT = "【{{活動名稱}}】報名審核結果通知";
+export const DEFAULT_REVIEW_RESULT_BODY = `{{錄取結果}}
+
+活動場次：{{活動名稱}}
+
+成員審核結果：
+{{成員審核結果}}
+
+繳費資訊：
+{{繳費資訊}}
+`;
+
 // 系統自動組成逐人結果描述文字，例如「OOO，符合免付費申請資格，無需繳交報名費」
 function describeMember(m: ReviewResultMemberInfo): string {
   if (!m.feeCategoryLabel) {
@@ -31,10 +45,11 @@ function describeMember(m: ReviewResultMemberInfo): string {
   return `${m.name}，${m.feeCategoryLabel}資格${m.feeReviewResult}`;
 }
 
-export function buildReviewResultEmail(input: ReviewResultEmailInput): {
-  subject: string;
-  body: string;
-} {
+// System-computed values the vendor-editable template text can't express (branches
+// on admission/payment state, a list built from live registration data) — filled
+// into {{placeholder}} tokens via renderTemplate, everything else in the template
+// stays freely editable prose.
+export function buildReviewResultVars(input: ReviewResultEmailInput): Record<string, string> {
   const admissionLine =
     input.admissionStatus === "正取"
       ? "您已錄取本次活動（正取）。"
@@ -55,17 +70,10 @@ export function buildReviewResultEmail(input: ReviewResultEmailInput): {
     }
   }
 
-  const subject = `【${input.sessionName}】報名審核結果通知`;
-  const body = `${admissionLine}
-
-活動場次：${input.sessionName}
-
-成員審核結果：
-${memberLines}
-
-繳費資訊：
-${paymentLines}
-`;
-
-  return { subject, body };
+  return {
+    活動名稱: input.sessionName,
+    錄取結果: admissionLine,
+    成員審核結果: memberLines,
+    繳費資訊: paymentLines,
+  };
 }

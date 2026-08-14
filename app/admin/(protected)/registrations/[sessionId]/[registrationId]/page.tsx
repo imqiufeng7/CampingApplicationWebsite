@@ -220,6 +220,12 @@ export default async function RegistrationDetailPage({
             <CardTitle>通知寄送紀錄</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
+            {(process.env.EMAIL_PROVIDER ?? "console") === "console" && (
+              <p className="bg-accent/40 text-accent-foreground rounded-lg px-3 py-2 text-xs">
+                ⚠️
+                目前 Email 為測試模式，以下內容只會記錄在這裡並印到伺服器 log，不會真的寄出。展開下方項目即可預覽實際寄送內容。
+              </p>
+            )}
             {(emailLogs ?? []).map((log) => (
               <details key={log.id} className="rounded-lg border p-3">
                 <summary className="cursor-pointer text-sm">

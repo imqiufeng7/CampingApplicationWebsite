@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { requireAdmin, requireFieldEditable, requireSessionAccess, ForbiddenError } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
-import { buildReviewResultEmail } from "@/lib/email/templates/reviewResult";
+import { getEmailTemplate } from "@/lib/email/getTemplate";
+import { renderTemplate } from "@/lib/email/renderTemplate";
+import {
+  buildReviewResultVars,
+  DEFAULT_REVIEW_RESULT_SUBJECT,
+  DEFAULT_REVIEW_RESULT_BODY,
+} from "@/lib/email/templates/reviewResult";
 
 const MANUAL_TRANSFER_ACCOUNT_INFO =
   "轉帳帳號：合作金庫銀行 (006) 1234-567-890123，戶名：OO活動籌備會";
@@ -54,6 +60,11 @@ export async function POST(request: Request) {
     (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
   );
 
+  const template = await getEmailTemplate(admin, "審核結果", sessionId, {
+    subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
+    bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
+  });
+
   const adapter = getEmailAdapter();
   let sent = 0;
   let failed = 0;
@@ -75,7 +86,7 @@ export async function POST(request: Request) {
       await admin.from("registrations").update({ ecpay_link: ecpayLink }).eq("id", registration.id);
     }
 
-    const { subject, body: emailBody } = buildReviewResultEmail({
+    const vars = buildReviewResultVars({
       sessionName: session?.name ?? "",
       admissionStatus: registration.admission_status,
       waitlistRank: registration.waitlist_rank,
@@ -89,6 +100,8 @@ export async function POST(request: Request) {
       ecpayLink,
       manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
     });
+    const subject = renderTemplate(template.subjectTemplate, vars);
+    const emailBody = renderTemplate(template.bodyTemplate, vars);
 
     const result = await adapter.sendEmail({
       to: registration.contact_email,

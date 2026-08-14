@@ -14,16 +14,18 @@ export default async function ReviewListPage({
   const admin = await requireSessionAccess(sessionId);
   const supabase = await createClient();
 
-  const [{ data: session }, { data: identityTypes }, { data: feeCategories }] = await Promise.all([
-    supabase.from("event_sessions").select("name").eq("id", sessionId).maybeSingle(),
-    supabase.from("session_identity_types").select("id, name").eq("session_id", sessionId),
-    supabase.from("session_fee_categories").select("id, label, code").eq("session_id", sessionId),
-  ]);
+  const [{ data: session }, { data: identityTypes }, { data: feeCategories }, { data: registrationCategories }] =
+    await Promise.all([
+      supabase.from("event_sessions").select("name").eq("id", sessionId).maybeSingle(),
+      supabase.from("session_identity_types").select("id, name").eq("session_id", sessionId),
+      supabase.from("session_fee_categories").select("id, label, code").eq("session_id", sessionId),
+      supabase.from("session_registration_categories").select("id, label").eq("session_id", sessionId),
+    ]);
 
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, submitted_at, contact_email, contact_phone, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, duplicate_flag"
+      "id, registration_seq, submitted_at, contact_email, contact_phone, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
     )
     .eq("session_id", sessionId);
 
@@ -73,6 +75,9 @@ export default async function ReviewListPage({
   const feeCategoryMap = new Map(
     (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
   );
+  const registrationCategoryMap = new Map(
+    (registrationCategories ?? []).map((rc) => [rc.id, rc.label])
+  );
 
   const rows: ReviewRow[] = sorted.map((r) => ({
     ...r,
@@ -102,6 +107,7 @@ export default async function ReviewListPage({
             data={rows}
             identityTypeMap={identityTypeMap}
             feeCategoryMap={feeCategoryMap}
+            registrationCategoryMap={registrationCategoryMap}
             fieldPermissions={admin.fieldPermissions}
             initialSortIds={sorted.map((r) => r.id)}
           />

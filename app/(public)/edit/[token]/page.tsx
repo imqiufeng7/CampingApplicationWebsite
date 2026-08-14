@@ -33,23 +33,31 @@ export default async function EditRegistrationPage({
     );
   }
 
-  const [{ data: session }, { data: identityTypes }, { data: feeCategories }] = await Promise.all([
-    supabase
-      .from("event_sessions")
-      .select("*")
-      .eq("id", registrationData.session_id)
-      .maybeSingle(),
-    supabase
-      .from("session_identity_types")
-      .select("*")
-      .eq("session_id", registrationData.session_id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("session_fee_categories")
-      .select("*")
-      .eq("session_id", registrationData.session_id)
-      .order("sort_order", { ascending: true }),
-  ]);
+  const [{ data: session }, { data: identityTypes }, { data: feeCategories }, { data: registrationCategory }] =
+    await Promise.all([
+      supabase
+        .from("event_sessions")
+        .select("*")
+        .eq("id", registrationData.session_id)
+        .maybeSingle(),
+      supabase
+        .from("session_identity_types")
+        .select("*")
+        .eq("session_id", registrationData.session_id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("session_fee_categories")
+        .select("*")
+        .eq("session_id", registrationData.session_id)
+        .order("sort_order", { ascending: true }),
+      registrationData.registration_category_id
+        ? supabase
+            .from("session_registration_categories")
+            .select("is_free")
+            .eq("id", registrationData.registration_category_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
   if (!session) {
     return (
@@ -66,6 +74,7 @@ export default async function EditRegistrationPage({
         session={session}
         identityTypes={identityTypes ?? []}
         feeCategories={feeCategories ?? []}
+        hideFeeCategory={registrationCategory?.is_free ?? false}
         data={registrationData}
       />
     </div>

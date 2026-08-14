@@ -41,15 +41,22 @@ export default async function DashboardPage() {
   const { data: sessions } = await sessionsQuery;
   const sessionIds = (sessions ?? []).map((s) => s.id);
 
-  const [{ data: series }, { data: registrations }] = await Promise.all([
+  const [{ data: series }, { data: registrations }, { data: registrationCategories }] = await Promise.all([
     supabase.from("event_series").select("id, name"),
     sessionIds.length
       ? supabase
           .from("registrations")
           .select(
-            "id, session_id, review_status, admission_status, payment_status, payment_amount, is_cancelled"
+            "id, session_id, registration_category_id, review_status, admission_status, payment_status, payment_amount, is_cancelled"
           )
           .in("session_id", sessionIds)
+      : Promise.resolve({ data: [] }),
+    sessionIds.length
+      ? supabase
+          .from("session_registration_categories")
+          .select("id, session_id, label, capacity_total, admission_quota")
+          .in("session_id", sessionIds)
+          .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -116,6 +123,27 @@ export default async function DashboardPage() {
     }
   }
 
+  const categoriesBySession = new Map<string, typeof registrationCategories>();
+  for (const rc of registrationCategories ?? []) {
+    const list = categoriesBySession.get(rc.session_id) ?? [];
+    list.push(rc);
+    categoriesBySession.set(rc.session_id, list);
+  }
+
+  const categoryStatsById = new Map<string, { activeGroups: number; admittedGroups: number }>();
+  for (const r of registrations ?? []) {
+    if (!r.registration_category_id) continue;
+    const stat = categoryStatsById.get(r.registration_category_id) ?? {
+      activeGroups: 0,
+      admittedGroups: 0,
+    };
+    if (!r.is_cancelled) {
+      stat.activeGroups += 1;
+      if (r.admission_status === "正取") stat.admittedGroups += 1;
+    }
+    categoryStatsById.set(r.registration_category_id, stat);
+  }
+
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
       <h1 className="text-lg font-semibold">儀表板</h1>
@@ -125,6 +153,7 @@ export default async function DashboardPage() {
           const activeGroups = stats.totalGroups - stats.cancelledGroups;
           const admittedGroups = stats.admissionStatus["正取"] ?? 0;
           const overQuota = s.admission_quota != null && admittedGroups > s.admission_quota;
+          const sessionCategories = categoriesBySession.get(s.id) ?? [];
           return (
             <Card key={s.id}>
               <CardHeader>
@@ -139,17 +168,56 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <Stat label="報名組數" value={activeGroups} />
                   <Stat label="總人數" value={stats.totalPeople} />
-                  <Stat
-                    label="開放報名上限"
-                    value={s.capacity_total ? `${activeGroups} / ${s.capacity_total}` : "未設定"}
-                  />
-                  <Stat
-                    label="已錄取 / 錄取名額"
-                    value={s.admission_quota ? `${admittedGroups} / ${s.admission_quota}` : "未設定"}
-                    highlight={overQuota ? "warn" : undefined}
-                  />
+                  {sessionCategories.length === 0 && (
+                    <>
+                      <Stat
+                        label="開放報名上限"
+                        value={s.capacity_total ? `${activeGroups} / ${s.capacity_total}` : "未設定"}
+                      />
+                      <Stat
+                        label="已錄取 / 錄取名額"
+                        value={s.admission_quota ? `${admittedGroups} / ${s.admission_quota}` : "未設定"}
+                        highlight={overQuota ? "warn" : undefined}
+                      />
+                    </>
+                  )}
                   <Stat label="已取消" value={stats.cancelledGroups} />
                 </div>
+
+                {sessionCategories.length > 0 && (
+                  <div>
+                    <p className="text-muted-foreground mb-1.5">依報名類別</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {sessionCategories.map((rc) => {
+                        const catStat = categoryStatsById.get(rc.id) ?? {
+                          activeGroups: 0,
+                          admittedGroups: 0,
+                        };
+                        const catOverQuota =
+                          rc.admission_quota != null && catStat.admittedGroups > rc.admission_quota;
+                        return (
+                          <div key={rc.id} className="rounded-lg border p-2">
+                            <p className="mb-1 text-xs font-medium">{rc.label}</p>
+                            <p className="text-muted-foreground text-xs">
+                              報名 {catStat.activeGroups}
+                              {rc.capacity_total ? ` / ${rc.capacity_total}` : ""}
+                            </p>
+                            <p
+                              className={
+                                catOverQuota
+                                  ? "text-destructive text-xs font-medium"
+                                  : "text-muted-foreground text-xs"
+                              }
+                            >
+                              錄取 {catStat.admittedGroups}
+                              {rc.admission_quota ? ` / ${rc.admission_quota}` : ""}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <StatusBlocks title="審核結果" counts={stats.reviewStatus} colors={REVIEW_COLORS} />
                 <StatusBlocks title="錄取結果" counts={stats.admissionStatus} colors={ADMISSION_COLORS} />

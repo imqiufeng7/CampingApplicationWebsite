@@ -72,6 +72,7 @@ export type ReviewRow = {
   is_cancelled: boolean;
   cancel_reason: string | null;
   duplicate_flag: boolean;
+  registration_category_id: string | null;
   memberNames: string[];
   members: ReviewRowMember[];
   files: ReviewRowFile[];
@@ -130,6 +131,7 @@ export function ReviewTable({
   data,
   identityTypeMap,
   feeCategoryMap,
+  registrationCategoryMap,
   fieldPermissions,
   initialSortIds,
 }: {
@@ -137,6 +139,7 @@ export function ReviewTable({
   data: ReviewRow[];
   identityTypeMap: Map<string, string>;
   feeCategoryMap: Map<string, string>;
+  registrationCategoryMap: Map<string, string>;
   fieldPermissions: FieldPermissions;
   initialSortIds: string[];
 }) {
@@ -264,6 +267,21 @@ export function ReviewTable({
           ),
         },
       ];
+
+      // Sessions with no registration categories configured never show this column —
+      // matches how the public form only shows the category picker step when at least
+      // one category exists.
+      if (registrationCategoryMap.size > 0) {
+        cols.push({
+          id: "registration_category",
+          header: "報名類別",
+          accessorFn: (r) => (r.registration_category_id ? registrationCategoryMap.get(r.registration_category_id) ?? "" : ""),
+          cell: ({ row }) =>
+            row.original.registration_category_id
+              ? (registrationCategoryMap.get(row.original.registration_category_id) ?? "-")
+              : "-",
+        });
+      }
 
       // 錄取分組結果 group: hidden entirely when the role has no access to it at all,
       // otherwise shown (editable or read-only per canEditAdmission).
@@ -480,6 +498,7 @@ export function ReviewTable({
       canEditFeeReview,
       identityTypeMap,
       feeCategoryMap,
+      registrationCategoryMap,
       duplicateGroups,
     ]
   );

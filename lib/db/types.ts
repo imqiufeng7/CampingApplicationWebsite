@@ -109,6 +109,7 @@ export interface Database {
           required_document_type: string | null;
           applies_to: FeeAppliesTo;
           auto_approve: boolean;
+          is_active: boolean;
           sort_order: number;
           created_at: string;
         };
@@ -119,10 +120,64 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["session_fee_categories"]["Insert"]>;
         Relationships: [];
       };
+      session_registration_categories: {
+        Row: {
+          id: string;
+          session_id: string;
+          label: string;
+          max_members: number;
+          capacity_total: number | null;
+          admission_quota: number | null;
+          is_free: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["session_registration_categories"]["Row"], "id" | "created_at">> & {
+          session_id: string;
+          label: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["session_registration_categories"]["Insert"]>;
+        Relationships: [];
+      };
+      email_templates: {
+        Row: {
+          id: string;
+          type: EmailType;
+          subject_template: string;
+          body_template: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["email_templates"]["Row"]> & {
+          type: EmailType;
+          subject_template: string;
+          body_template: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["email_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      session_email_templates: {
+        Row: {
+          id: string;
+          session_id: string;
+          type: EmailType;
+          subject_template: string;
+          body_template: string;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["session_email_templates"]["Row"], "id" | "created_at">> & {
+          session_id: string;
+          type: EmailType;
+          subject_template: string;
+          body_template: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["session_email_templates"]["Insert"]>;
+        Relationships: [];
+      };
       registrations: {
         Row: {
           id: string;
           session_id: string;
+          registration_category_id: string | null;
           contact_email: string;
           contact_phone: string;
           submitted_at: string;

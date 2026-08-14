@@ -23,10 +23,16 @@ import { MemberFieldGroup } from "@/components/public-form/MemberFieldGroup";
 import { ConsentSection } from "@/components/public-form/ConsentSection";
 import { ConsentGate } from "@/components/public-form/ConsentGate";
 import { RichContent } from "@/components/public-form/RichContent";
+import { RegistrationCategoryPicker } from "@/components/public-form/RegistrationCategoryPicker";
+import { SectionCard } from "@/components/public-form/SectionCard";
+import { ConfettiBurst } from "@/components/public-form/ConfettiBurst";
 
 type EventSession = Database["public"]["Tables"]["event_sessions"]["Row"];
 type IdentityType = Database["public"]["Tables"]["session_identity_types"]["Row"];
 type FeeCategory = Database["public"]["Tables"]["session_fee_categories"]["Row"];
+type RegistrationCategory = Database["public"]["Tables"]["session_registration_categories"]["Row"] & {
+  isFull: boolean;
+};
 
 const DEFAULT_RULES_TEXT = `1. 報名資料送出後，將由主辦單位進行資格審核，審核結果將以 Email 通知。
 2. 請確實填寫聯絡資訊，以利後續通知與繳費作業。
@@ -47,13 +53,16 @@ export function RegistrationForm({
   seriesName,
   identityTypes,
   feeCategories,
+  registrationCategories,
 }: {
   session: EventSession;
   seriesName: string;
   identityTypes: IdentityType[];
   feeCategories: FeeCategory[];
+  registrationCategories: RegistrationCategory[];
 }) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitResult, setSubmitResult] = useState<{
     registrationId: string;
@@ -62,15 +71,19 @@ export function RegistrationForm({
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const activityTitle = seriesName ? `${seriesName}-${session.name}` : session.name;
+  const hasCategories = registrationCategories.length > 0;
+  const selectedCategory = registrationCategories.find((c) => c.id === selectedCategoryId);
+  const maxMembers = hasCategories ? (selectedCategory?.max_members ?? 1) : session.max_members_per_registration;
+  const hideFeeCategory = hasCategories && (selectedCategory?.is_free ?? false);
 
   const schema = useMemo(
     () =>
       buildRegistrationSchema({
-        maxMembers: session.max_members_per_registration,
+        maxMembers,
         identityTypes,
         feeCategories,
       }),
-    [session.max_members_per_registration, identityTypes, feeCategories]
+    [maxMembers, identityTypes, feeCategories]
   );
 
   const form = useForm<RegistrationFormInput, unknown, RegistrationFormOutput>({
@@ -98,6 +111,7 @@ export function RegistrationForm({
     const { data, error } = await supabase.rpc("fn_submit_registration", {
       payload: {
         session_id: session.id,
+        registration_category_id: selectedCategoryId || null,
         contact_email: values.contact_email,
         contact_phone: values.contact_phone,
         members: values.members.map((m, i) => ({
@@ -149,18 +163,32 @@ export function RegistrationForm({
 
   if (submitResult) {
     return (
-      <Card className="mx-auto max-w-2xl">
+      <Card className="animate-fade-up mx-auto max-w-2xl">
         <CardHeader>
-          <CardTitle>報名已送出</CardTitle>
+          <div className="mx-auto flex flex-col items-center gap-2 text-center">
+            <div className="relative">
+              <ConfettiBurst />
+              <div
+                className="animate-pop-in bg-primary text-primary-foreground relative grid size-14 place-items-center rounded-full text-2xl"
+                aria-hidden
+              >
+                ✓
+              </div>
+            </div>
+            <CardTitle className="text-lg">報名已送出</CardTitle>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm">
           <RichContent html={session.success_message_text || DEFAULT_SUCCESS_MESSAGE} />
-          <p className="text-muted-foreground">報名編號：{submitResult.registrationNo}</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="bg-secondary text-secondary-foreground w-fit justify-self-center rounded-full px-4 py-1.5 font-medium">
+            報名編號：{submitResult.registrationNo}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
+              className="rounded-full"
               disabled={resendState === "sending"}
               onClick={handleResend}
             >
@@ -172,14 +200,14 @@ export function RegistrationForm({
             </Button>
             {session.redirect_url && (
               <a href={session.redirect_url} target="_blank" rel="noopener noreferrer">
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
                   {session.redirect_label || "前往活動官網"}
                 </Button>
               </a>
             )}
           </div>
           {resendState === "error" && (
-            <p className="text-destructive text-sm">寄送失敗，請稍後再試</p>
+            <p className="text-destructive text-center text-sm">寄送失敗，請稍後再試</p>
           )}
         </CardContent>
       </Card>
@@ -204,9 +232,14 @@ export function RegistrationForm({
         </div>
       )}
 
-      <div className="grid gap-1">
-        <h1 className="text-xl font-semibold">{activityTitle}</h1>
-        {session.location && <p className="text-muted-foreground text-sm">{session.location}</p>}
+      <div className="grid gap-2">
+        <span className="bg-accent text-accent-foreground animate-float-slow inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide">
+          📋 線上報名
+        </span>
+        <h1 className="text-primary font-heading text-2xl font-black tracking-tight sm:text-3xl">
+          {activityTitle}
+        </h1>
+        {session.location && <p className="text-muted-foreground text-sm">📍 {session.location}</p>}
       </div>
 
       {session.location && (
@@ -221,55 +254,39 @@ export function RegistrationForm({
         </div>
       )}
 
-      {session.intro_content && <RichContent html={session.intro_content} />}
+      {session.intro_content && (
+        <SectionCard title="🏕️ 活動介紹" delay={40}>
+          <RichContent html={session.intro_content} />
+        </SectionCard>
+      )}
 
       {session.schedule_content && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">流程表</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RichContent html={session.schedule_content} />
-          </CardContent>
-        </Card>
+        <SectionCard title="流程表" delay={80}>
+          <RichContent html={session.schedule_content} />
+        </SectionCard>
       )}
 
       {session.registration_process_content && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">報名流程說明</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RichContent html={session.registration_process_content} />
-          </CardContent>
-        </Card>
+        <SectionCard title="報名流程說明" delay={120}>
+          <RichContent html={session.registration_process_content} />
+        </SectionCard>
       )}
 
       {session.fee_waiver_content && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">減免內容及應附文件</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RichContent html={session.fee_waiver_content} />
-          </CardContent>
-        </Card>
+        <SectionCard title="減免內容及應附文件" delay={160}>
+          <RichContent html={session.fee_waiver_content} />
+        </SectionCard>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">活動辦法/注意事項</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RichContent html={session.rules_text || DEFAULT_RULES_TEXT} />
-        </CardContent>
-      </Card>
+      <SectionCard title="活動辦法/注意事項" delay={200}>
+        <RichContent html={session.rules_text || DEFAULT_RULES_TEXT} />
+      </SectionCard>
     </>
   );
 
   if (!agreedToTerms) {
     return (
-      <div className="mx-auto grid max-w-2xl gap-6">
+      <div className="animate-fade-up mx-auto grid max-w-2xl gap-6">
         {introContent}
         <ConsentGate
           activityTitle={activityTitle}
@@ -280,9 +297,27 @@ export function RegistrationForm({
     );
   }
 
+  // Category is chosen before any member field renders — "先確認報名的項目後，才因應
+  // 這個部分去呈現使用者報名時需要填寫的欄位".
+  if (hasCategories && !selectedCategoryId) {
+    return (
+      <div className="animate-fade-up mx-auto grid max-w-2xl gap-6">
+        {introContent}
+        <RegistrationCategoryPicker
+          categories={registrationCategories}
+          value={selectedCategoryId}
+          onChange={setSelectedCategoryId}
+        />
+      </div>
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto grid max-w-2xl gap-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="animate-fade-up mx-auto grid max-w-2xl gap-6"
+      >
         {introContent}
 
         <ProgressDots
@@ -296,39 +331,34 @@ export function RegistrationForm({
           ]}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">聯絡資訊</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="contact_email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>聯絡 Email（必填）</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contact_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>聯絡電話（必填）</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+        <SectionCard title="聯絡資訊" contentClassName="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="contact_email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>聯絡 Email（必填）</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contact_phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>聯絡電話（必填）</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SectionCard>
 
         {fields.map((field, index) => (
           <MemberFieldGroup
@@ -339,45 +369,46 @@ export function RegistrationForm({
             sessionId={session.id}
             identityTypes={identityTypes}
             feeCategories={feeCategories}
+            hideFeeCategory={hideFeeCategory}
             removable={index > 0}
             onRemove={() => remove(index)}
           />
         ))}
 
-        {fields.length < session.max_members_per_registration && (
-          <Button type="button" variant="outline" onClick={() => append(emptyMember())}>
+        {fields.length < maxMembers && (
+          <Button
+            type="button"
+            variant="outline"
+            className="border-primary/40 text-primary hover:bg-primary/10 rounded-full"
+            onClick={() => append(emptyMember())}
+          >
             + 新增成員
           </Button>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">注意事項與同意書</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConsentSection
-              control={form.control}
-              rulesText={session.rules_text || DEFAULT_RULES_TEXT}
-              privacyConsentText={session.privacy_consent_text}
-            />
-          </CardContent>
-        </Card>
+        <SectionCard title="注意事項與同意書">
+          <ConsentSection
+            control={form.control}
+            rulesText={session.rules_text || DEFAULT_RULES_TEXT}
+            privacyConsentText={session.privacy_consent_text}
+          />
+        </SectionCard>
 
         {session.submit_reminder_text && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">送出前請注意</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RichContent html={session.submit_reminder_text} />
-            </CardContent>
-          </Card>
+          <SectionCard title="送出前請注意">
+            <RichContent html={session.submit_reminder_text} />
+          </SectionCard>
         )}
 
         {submitError && <p className="text-destructive text-sm">{submitError}</p>}
 
-        <Button type="submit" disabled={form.formState.isSubmitting} size="lg">
-          {form.formState.isSubmitting ? "送出中..." : "送出報名"}
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          size="lg"
+          className="rounded-full text-base font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          {form.formState.isSubmitting ? "送出中..." : "🏕️ 送出報名"}
         </Button>
       </form>
     </Form>

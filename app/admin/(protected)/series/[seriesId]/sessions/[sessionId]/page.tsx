@@ -6,8 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionForm } from "@/components/admin/SessionForm";
 import { IdentityTypeEditor } from "@/components/admin/IdentityTypeEditor";
 import { FeeCategoryEditor } from "@/components/admin/FeeCategoryEditor";
+import { RegistrationCategoryEditor } from "@/components/admin/RegistrationCategoryEditor";
+import { SessionEmailTemplateEditor } from "@/components/admin/SessionEmailTemplateEditor";
 import { BannerUploadField } from "@/components/admin/BannerUploadField";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import type { EmailType } from "@/lib/db/types";
+
+const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: string[] }[] = [
+  {
+    type: "報名確認",
+    label: "報名確認信（送出報名後立即寄出）",
+    placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "成員名單", "修改連結"],
+  },
+  {
+    type: "審核結果",
+    label: "審核結果/繳費通知（後台批次寄送）",
+    placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+  },
+];
 
 export default async function SessionBuilderPage({
   params,
@@ -18,7 +34,14 @@ export default async function SessionBuilderPage({
   const { seriesId, sessionId } = await params;
   const supabase = await createClient();
 
-  const [{ data: session }, { data: identityTypes }, { data: feeCategories }] = await Promise.all([
+  const [
+    { data: session },
+    { data: identityTypes },
+    { data: feeCategories },
+    { data: registrationCategories },
+    { data: emailTemplateOverrides },
+    { data: globalEmailTemplates },
+  ] = await Promise.all([
     supabase.from("event_sessions").select("*").eq("id", sessionId).maybeSingle(),
     supabase
       .from("session_identity_types")
@@ -30,7 +53,21 @@ export default async function SessionBuilderPage({
       .select("*")
       .eq("session_id", sessionId)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("session_registration_categories")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("session_email_templates")
+      .select("type, subject_template, body_template")
+      .eq("session_id", sessionId),
+    supabase.from("email_templates").select("type, subject_template, body_template"),
   ]);
+  const emailOverrideByType = new Map(
+    (emailTemplateOverrides ?? []).map((t) => [t.type, t])
+  );
+  const globalEmailTemplateByType = new Map((globalEmailTemplates ?? []).map((t) => [t.type, t]));
 
   if (!session) {
     notFound();
@@ -72,6 +109,19 @@ export default async function SessionBuilderPage({
 
       <Card>
         <CardHeader>
+          <CardTitle>報名類別設定</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RegistrationCategoryEditor
+            seriesId={seriesId}
+            sessionId={sessionId}
+            registrationCategories={registrationCategories ?? []}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>身分別設定</CardTitle>
         </CardHeader>
         <CardContent>
@@ -93,6 +143,30 @@ export default async function SessionBuilderPage({
             sessionId={sessionId}
             feeCategories={feeCategories ?? []}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Email 範本（此場次）</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {EMAIL_TEMPLATE_META.map((meta) => {
+            const globalDefault = globalEmailTemplateByType.get(meta.type);
+            if (!globalDefault) return null;
+            return (
+              <SessionEmailTemplateEditor
+                key={meta.type}
+                seriesId={seriesId}
+                sessionId={sessionId}
+                type={meta.type}
+                label={meta.label}
+                placeholders={meta.placeholders}
+                override={emailOverrideByType.get(meta.type) ?? null}
+                globalDefault={globalDefault}
+              />
+            );
+          })}
         </CardContent>
       </Card>
     </div>

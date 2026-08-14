@@ -21,6 +21,7 @@ export interface EditRegistrationMemberData {
 export interface EditRegistrationData {
   registration_id: string;
   session_id: string;
+  registration_category_id: string | null;
   registration_no: string;
   contact_email: string;
   contact_phone: string;

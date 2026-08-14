@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MemberFieldGroup } from "@/components/public-form/MemberFieldGroup";
+import { SectionCard } from "@/components/public-form/SectionCard";
+import { ConfettiBurst } from "@/components/public-form/ConfettiBurst";
 
 type EventSession = Database["public"]["Tables"]["event_sessions"]["Row"];
 type IdentityType = Database["public"]["Tables"]["session_identity_types"]["Row"];
@@ -28,12 +30,14 @@ export function EditRegistrationForm({
   session,
   identityTypes,
   feeCategories,
+  hideFeeCategory,
   data,
 }: {
   token: string;
   session: EventSession;
   identityTypes: IdentityType[];
   feeCategories: FeeCategory[];
+  hideFeeCategory?: boolean;
   data: EditRegistrationData;
 }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -116,11 +120,22 @@ export function EditRegistrationForm({
 
   if (saved) {
     return (
-      <Card className="mx-auto max-w-2xl">
+      <Card className="animate-fade-up mx-auto max-w-2xl">
         <CardHeader>
-          <CardTitle>資料已更新</CardTitle>
+          <div className="mx-auto flex flex-col items-center gap-2 text-center">
+            <div className="relative">
+              <ConfettiBurst />
+              <div
+                className="animate-pop-in bg-primary text-primary-foreground relative grid size-14 place-items-center rounded-full text-2xl"
+                aria-hidden
+              >
+                ✓
+              </div>
+            </div>
+            <CardTitle className="text-lg">資料已更新</CardTitle>
+          </div>
         </CardHeader>
-        <CardContent className="text-sm">
+        <CardContent className="text-center text-sm">
           <p>您的報名資料（編號 {data.registration_no}）已更新完成，感謝配合。</p>
         </CardContent>
       </Card>
@@ -129,47 +144,48 @@ export function EditRegistrationForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto grid max-w-2xl gap-6">
-        <div className="grid gap-1">
-          <h1 className="text-xl font-semibold">修改報名資料</h1>
-          <p className="text-muted-foreground text-sm">
-            {session.name} · 報名編號 {data.registration_no}
-          </p>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="animate-fade-up mx-auto grid max-w-2xl gap-6"
+      >
+        <div className="grid gap-2">
+          <span className="bg-accent text-accent-foreground inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide">
+            ✏️ 修改報名資料
+          </span>
+          <h1 className="text-primary font-heading text-2xl font-black tracking-tight">
+            {session.name}
+          </h1>
+          <p className="text-muted-foreground text-sm">報名編號 {data.registration_no}</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">聯絡資訊</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="contact_email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>聯絡 Email（必填）</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contact_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>聯絡電話（必填）</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+        <SectionCard title="聯絡資訊" contentClassName="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="contact_email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>聯絡 Email（必填）</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contact_phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>聯絡電話（必填）</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SectionCard>
 
         {fields.map((field, index) => (
           <MemberFieldGroup
@@ -180,6 +196,7 @@ export function EditRegistrationForm({
             sessionId={session.id}
             identityTypes={identityTypes}
             feeCategories={feeCategories}
+            hideFeeCategory={hideFeeCategory}
             removable={false}
             onRemove={() => {}}
           />
@@ -187,7 +204,12 @@ export function EditRegistrationForm({
 
         {submitError && <p className="text-destructive text-sm">{submitError}</p>}
 
-        <Button type="submit" disabled={form.formState.isSubmitting} size="lg">
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          size="lg"
+          className="rounded-full text-base font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+        >
           {form.formState.isSubmitting ? "儲存中..." : "儲存修改"}
         </Button>
       </form>

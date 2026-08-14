@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
-import { buildRegistrationConfirmationEmail } from "@/lib/email/templates/registrationConfirmation";
+import { getEmailTemplate } from "@/lib/email/getTemplate";
+import { renderTemplate } from "@/lib/email/renderTemplate";
+import {
+  buildRegistrationConfirmationVars,
+  DEFAULT_REGISTRATION_CONFIRMATION_SUBJECT,
+  DEFAULT_REGISTRATION_CONFIRMATION_BODY,
+} from "@/lib/email/templates/registrationConfirmation";
 
 const MAX_SENDS_PER_REGISTRATION = 5;
 
@@ -49,7 +55,7 @@ export async function POST(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const registrationNo = `R${String(registration.registration_seq).padStart(6, "0")}`;
 
-  const { subject, body } = buildRegistrationConfirmationEmail({
+  const vars = buildRegistrationConfirmationVars({
     sessionName: session?.name ?? "",
     registrationNo,
     contactEmail: registration.contact_email,
@@ -57,6 +63,13 @@ export async function POST(
     members: (members ?? []).map((m) => ({ name: m.name })),
     editUrl: `${siteUrl}/edit/${registration.edit_token}`,
   });
+
+  const template = await getEmailTemplate(admin, "報名確認", registration.session_id, {
+    subjectTemplate: DEFAULT_REGISTRATION_CONFIRMATION_SUBJECT,
+    bodyTemplate: DEFAULT_REGISTRATION_CONFIRMATION_BODY,
+  });
+  const subject = renderTemplate(template.subjectTemplate, vars);
+  const body = renderTemplate(template.bodyTemplate, vars);
 
   const adapter = getEmailAdapter();
   const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });

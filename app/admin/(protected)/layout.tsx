@@ -20,38 +20,53 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     );
   }
 
+  const linkClass =
+    "text-muted-foreground hover:text-primary font-medium transition-colors";
+
   return (
     <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b px-4 py-3">
+      <div
+        className="h-1"
+        style={{
+          background:
+            "linear-gradient(90deg, var(--primary), var(--accent), var(--poster-blue))",
+        }}
+        aria-hidden
+      />
+      <header className="bg-card border-border flex items-center justify-between border-b px-4 py-3">
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/admin" className="font-semibold">
-            報名系統後台
+          <Link href="/admin" className="text-primary flex items-center gap-1.5 font-bold">
+            🏕️ 報名系統後台
           </Link>
-          <Link href="/admin/dashboard" className="text-muted-foreground hover:text-foreground">
+          <Link href="/admin/dashboard" className={linkClass}>
             儀表板
           </Link>
-          <Link href="/admin/reviews" className="text-muted-foreground hover:text-foreground">
+          <Link href="/admin/reviews" className={linkClass}>
             審核
           </Link>
-          <Link href="/admin/payments" className="text-muted-foreground hover:text-foreground">
+          <Link href="/admin/payments" className={linkClass}>
             繳費
           </Link>
           {admin.isVendor && (
             <>
-              <Link href="/admin/series" className="text-muted-foreground hover:text-foreground">
+              <span className="bg-border h-4 w-px" aria-hidden />
+              <Link href="/admin/series" className={linkClass}>
                 活動系列
               </Link>
-              <Link href="/admin/admins" className="text-muted-foreground hover:text-foreground">
+              <Link href="/admin/admins" className={linkClass}>
                 管理員帳號
               </Link>
-              <Link href="/admin/permissions" className="text-muted-foreground hover:text-foreground">
+              <Link href="/admin/permissions" className={linkClass}>
                 權限設定
+              </Link>
+              <Link href="/admin/email-templates" className={linkClass}>
+                Email 範本
               </Link>
             </>
           )}
         </nav>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">
+          <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-medium">
             {admin.email} · {admin.roleLabel}
           </span>
           <SignOutButton />

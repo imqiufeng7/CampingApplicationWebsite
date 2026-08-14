@@ -265,8 +265,8 @@ export function MemberDocumentsDialog({
                 onClick={() => setSelectedMemberId(m.id)}
                 className={
                   m.id === selectedMemberId
-                    ? "bg-muted rounded-lg px-2 py-1.5 text-left text-sm font-medium"
-                    : "hover:bg-muted/50 rounded-lg px-2 py-1.5 text-left text-sm"
+                    ? "bg-primary text-primary-foreground rounded-lg px-2 py-1.5 text-left text-sm font-medium shadow-sm"
+                    : "hover:bg-muted text-foreground rounded-lg border border-transparent px-2 py-1.5 text-left text-sm"
                 }
               >
                 {m.name}

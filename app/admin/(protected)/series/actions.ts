@@ -9,7 +9,9 @@ import {
   sessionSchema,
   identityTypeSchema,
   feeCategorySchema,
+  registrationCategorySchema,
 } from "@/lib/validation/admin-schemas";
+import type { EmailType } from "@/lib/db/types";
 
 export type ActionState = { error: string | null };
 
@@ -224,7 +226,27 @@ export async function cloneSession(
         required_document_type: fc.required_document_type,
         applies_to: fc.applies_to,
         auto_approve: fc.auto_approve,
+        is_active: fc.is_active,
         sort_order: fc.sort_order,
+      }))
+    );
+  }
+
+  const { data: registrationCategories } = await supabase
+    .from("session_registration_categories")
+    .select("*")
+    .eq("session_id", sourceSessionId);
+
+  if (registrationCategories && registrationCategories.length > 0) {
+    await supabase.from("session_registration_categories").insert(
+      registrationCategories.map((rc) => ({
+        session_id: newSession.id,
+        label: rc.label,
+        max_members: rc.max_members,
+        capacity_total: rc.capacity_total,
+        admission_quota: rc.admission_quota,
+        is_free: rc.is_free,
+        sort_order: rc.sort_order,
       }))
     );
   }
@@ -317,6 +339,90 @@ export async function createFeeCategory(
   return { error: null };
 }
 
+export async function updateFeeCategory(
+  seriesId: string,
+  sessionId: string,
+  id: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole("vendor");
+
+  const raw = formToObject(formData);
+  const parsed = feeCategorySchema.safeParse({
+    ...raw,
+    auto_approve: raw.auto_approve === "on" || raw.auto_approve === "true",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "資料格式錯誤" };
+  }
+
+  const supabase = await createClient();
+  // sort_order isn't part of this form (drag-and-drop owns it via
+  // reorderFeeCategories) — updating only the fields the form actually has means a
+  // save here can never reset the category back to position 0.
+  const { code, label, discount_amount, required_document_type, applies_to, auto_approve } = parsed.data;
+  const { error } = await supabase
+    .from("session_fee_categories")
+    .update({ code, label, discount_amount, required_document_type, applies_to, auto_approve })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
+// Drag-and-drop reordering — one call per drop, rewrites sort_order for every row so
+// the new order survives a reload.
+export async function reorderFeeCategories(
+  seriesId: string,
+  sessionId: string,
+  orderedIds: string[]
+): Promise<{ error: string | null }> {
+  await requireRole("vendor");
+  const supabase = await createClient();
+
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("session_fee_categories").update({ sort_order: index }).eq("id", id)
+    )
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    return { error: failed.error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
+// Preferred over deleting when a category might be needed again later — keeps its
+// document requirement / discount amount / auto_approve setting intact instead of
+// having to be rebuilt from scratch.
+export async function setFeeCategoryActive(
+  seriesId: string,
+  sessionId: string,
+  id: string,
+  isActive: boolean
+): Promise<{ error: string | null }> {
+  await requireRole("vendor");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("session_fee_categories")
+    .update({ is_active: isActive })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
 export async function deleteFeeCategory(
   seriesId: string,
   sessionId: string,
@@ -329,4 +435,138 @@ export async function deleteFeeCategory(
     throw new Error(error.message);
   }
   revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+}
+
+// ---------------------------------------------------------------------------
+// session_registration_categories
+// ---------------------------------------------------------------------------
+export async function createRegistrationCategory(
+  seriesId: string,
+  sessionId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole("vendor");
+
+  const raw = formToObject(formData);
+  const parsed = registrationCategorySchema.safeParse({
+    ...raw,
+    is_free: raw.is_free === "on" || raw.is_free === "true",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "資料格式錯誤" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("session_registration_categories")
+    .insert({ ...parsed.data, session_id: sessionId });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
+// Unlike identity types / fee categories, this needs a real update path (not just
+// create+delete): once a category has any registrations, its FK (on delete restrict)
+// makes it undeletable, and admission_quota/capacity_total are exactly the kind of
+// numbers organizers tune as an event approaches.
+export async function updateRegistrationCategory(
+  seriesId: string,
+  sessionId: string,
+  id: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole("vendor");
+
+  const raw = formToObject(formData);
+  const parsed = registrationCategorySchema.safeParse({
+    ...raw,
+    is_free: raw.is_free === "on" || raw.is_free === "true",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "資料格式錯誤" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("session_registration_categories")
+    .update(parsed.data)
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
+export async function deleteRegistrationCategory(
+  seriesId: string,
+  sessionId: string,
+  id: string
+): Promise<void> {
+  await requireRole("vendor");
+  const supabase = await createClient();
+  const { error } = await supabase.from("session_registration_categories").delete().eq("id", id);
+  if (error) {
+    throw new Error(
+      error.code === "23503"
+        ? "已經有報名資料使用此類別，無法刪除，請改用編輯調整設定"
+        : error.message
+    );
+  }
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+}
+
+// ---------------------------------------------------------------------------
+// session_email_templates (per-session override of the global email_templates row)
+// ---------------------------------------------------------------------------
+export async function upsertSessionEmailTemplate(
+  seriesId: string,
+  sessionId: string,
+  type: EmailType,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireRole("vendor");
+
+  const subject = formData.get("subject_template");
+  const body = formData.get("body_template");
+  if (typeof subject !== "string" || !subject.trim() || typeof body !== "string" || !body.trim()) {
+    return { error: "主旨與內文皆為必填" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("session_email_templates").upsert(
+    { session_id: sessionId, type, subject_template: subject, body_template: body },
+    { onConflict: "session_id,type" }
+  );
+
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
+}
+
+export async function deleteSessionEmailTemplate(
+  seriesId: string,
+  sessionId: string,
+  type: EmailType
+): Promise<{ error: string | null }> {
+  await requireRole("vendor");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("session_email_templates")
+    .delete()
+    .eq("session_id", sessionId)
+    .eq("type", type);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
 }

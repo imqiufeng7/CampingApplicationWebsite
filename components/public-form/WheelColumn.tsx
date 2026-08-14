@@ -11,30 +11,46 @@ export function WheelColumn({
   value,
   onChange,
   ariaLabel,
+  initialIndex,
 }: {
   options: { value: number; label: string }[];
   value: number | undefined;
   onChange: (value: number) => void;
   ariaLabel: string;
+  // Scroll position to land on before the registrant has picked anything (e.g. the
+  // middle of the most common birth-year range) — purely visual, doesn't set value,
+  // so the field stays empty/required until an actual choice is made.
+  initialIndex?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProgrammaticScroll = useRef(false);
+  const didInitRef = useRef(false);
 
   const selectedIndex = value !== undefined ? options.findIndex((o) => o.value === value) : -1;
 
   // Keep the wheel's scroll position in sync when `value` changes from outside
   // (e.g. loading existing data into the edit form) — guarded so the resulting
   // programmatic scroll doesn't immediately re-fire onChange via handleScroll.
+  // Before any real value exists, land on `initialIndex` once instead of index 0.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || selectedIndex < 0) return;
-    const target = selectedIndex * ITEM_HEIGHT;
-    if (Math.abs(el.scrollTop - target) > 1) {
-      isProgrammaticScroll.current = true;
-      el.scrollTo({ top: target, behavior: "auto" });
+    if (!el) return;
+    if (selectedIndex >= 0) {
+      const target = selectedIndex * ITEM_HEIGHT;
+      if (Math.abs(el.scrollTop - target) > 1) {
+        isProgrammaticScroll.current = true;
+        el.scrollTo({ top: target, behavior: "auto" });
+      }
+      didInitRef.current = true;
+      return;
     }
-  }, [selectedIndex]);
+    if (!didInitRef.current && initialIndex !== undefined) {
+      isProgrammaticScroll.current = true;
+      el.scrollTo({ top: initialIndex * ITEM_HEIGHT, behavior: "auto" });
+      didInitRef.current = true;
+    }
+  }, [selectedIndex, initialIndex]);
 
   function handleScroll() {
     if (isProgrammaticScroll.current) {

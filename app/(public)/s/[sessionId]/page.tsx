@@ -51,7 +51,18 @@ export default async function PublicRegistrationPage({
     );
   }
 
-  if (session.capacity_total !== null) {
+  const { data: registrationCategoriesRaw } = await supabase
+    .from("session_registration_categories")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("sort_order", { ascending: true });
+  const registrationCategories = registrationCategoriesRaw ?? [];
+  const hasCategories = registrationCategories.length > 0;
+
+  // Capacity is either session-wide (no categories defined — original behavior) or
+  // per-category (see the category-count block below); never both, matching
+  // fn_submit_registration's own branching.
+  if (!hasCategories && session.capacity_total !== null) {
     const { count } = await supabase
       .from("registrations")
       .select("id", { count: "exact", head: true })
@@ -64,6 +75,41 @@ export default async function PublicRegistrationPage({
           <h1 className="text-lg font-medium">報名名額已滿</h1>
           <p className="text-muted-foreground mt-2 text-sm">
             此場次報名人數已達上限，如有名額釋出將由主辦單位另行公告。
+          </p>
+        </div>
+      );
+    }
+  }
+
+  let categoriesWithAvailability = registrationCategories.map((rc) => ({ ...rc, isFull: false }));
+  if (hasCategories) {
+    const { data: activeRegistrations } = await supabase
+      .from("registrations")
+      .select("registration_category_id")
+      .eq("session_id", sessionId)
+      .eq("is_cancelled", false);
+
+    const countByCategory = new Map<string, number>();
+    for (const r of activeRegistrations ?? []) {
+      if (!r.registration_category_id) continue;
+      countByCategory.set(
+        r.registration_category_id,
+        (countByCategory.get(r.registration_category_id) ?? 0) + 1
+      );
+    }
+
+    categoriesWithAvailability = registrationCategories.map((rc) => ({
+      ...rc,
+      isFull: rc.capacity_total !== null && (countByCategory.get(rc.id) ?? 0) >= rc.capacity_total,
+    }));
+
+    // All categories full — same "額滿" gate as the no-categories path above.
+    if (categoriesWithAvailability.every((rc) => rc.isFull)) {
+      return (
+        <div className="mx-auto max-w-md p-8 text-center">
+          <h1 className="text-lg font-medium">報名名額已滿</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            此場次各類別報名人數皆已達上限，如有名額釋出將由主辦單位另行公告。
           </p>
         </div>
       );
@@ -94,6 +140,7 @@ export default async function PublicRegistrationPage({
         seriesName={series?.name ?? ""}
         identityTypes={identityTypes ?? []}
         feeCategories={feeCategories ?? []}
+        registrationCategories={categoriesWithAvailability}
       />
     </div>
   );

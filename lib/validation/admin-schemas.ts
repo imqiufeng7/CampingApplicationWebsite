@@ -22,7 +22,7 @@ const optionalText = z
 // which would silently turn a blank "選填" number field into a real 0 on every save
 // (e.g. capacity_total: 0 would make a session look permanently full). Transform blank
 // to null explicitly instead, same "leave it unset" semantics as optionalText.
-const optionalInt = z
+export const optionalInt = z
   .string()
   .optional()
   .transform((v) => (v && v.trim() !== "" ? Number(v) : null));
@@ -79,3 +79,14 @@ export const feeCategorySchema = z.object({
 });
 
 export type FeeCategoryFormValues = z.infer<typeof feeCategorySchema>;
+
+export const registrationCategorySchema = z.object({
+  label: z.string().min(1, "請輸入報名類別名稱"),
+  max_members: z.coerce.number().int().min(1).default(1),
+  capacity_total: optionalInt,
+  admission_quota: optionalInt,
+  is_free: z.boolean().default(false),
+  sort_order: z.coerce.number().int().default(0),
+});
+
+export type RegistrationCategoryFormValues = z.infer<typeof registrationCategorySchema>;
