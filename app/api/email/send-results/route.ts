@@ -1,0 +1,117 @@
+import { NextResponse } from "next/server";
+import { requireAdmin, requireFieldEditable, requireSessionAccess, ForbiddenError } from "@/lib/auth/guards";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getEmailAdapter } from "@/lib/email";
+import { buildReviewResultEmail } from "@/lib/email/templates/reviewResult";
+
+const MANUAL_TRANSFER_ACCOUNT_INFO =
+  "轉帳帳號：合作金庫銀行 (006) 1234-567-890123，戶名：OO活動籌備會";
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+  const sessionId = body?.sessionId as string | undefined;
+
+  if (!sessionId) {
+    return NextResponse.json({ error: "缺少 sessionId" }, { status: 400 });
+  }
+
+  try {
+    const currentAdmin = await requireAdmin();
+    await requireFieldEditable(currentAdmin, "錄取分組結果");
+    await requireSessionAccess(sessionId);
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
+    throw err;
+  }
+
+  // email_logs writes (and the ecpay_link backfill below) have no RLS policy for the
+  // authenticated role by design — only service-role can write them. The permission
+  // check above already confirmed the caller is authorized to trigger this batch.
+  const admin = createAdminClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const { data: session } = await admin
+    .from("event_sessions")
+    .select("name")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  const { data: registrations } = await admin
+    .from("registrations")
+    .select("*")
+    .eq("session_id", sessionId)
+    .eq("is_cancelled", false)
+    .eq("review_status", "審核通過")
+    .in("admission_status", ["正取", "備取"]);
+
+  const { data: feeCategories } = await admin
+    .from("session_fee_categories")
+    .select("id, label, code")
+    .eq("session_id", sessionId);
+  const feeCategoryMap = new Map(
+    (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
+  );
+
+  const adapter = getEmailAdapter();
+  let sent = 0;
+  let failed = 0;
+
+  for (const registration of registrations ?? []) {
+    const { data: members } = await admin
+      .from("registration_members")
+      .select("name, fee_review_result, fee_category_id")
+      .eq("registration_id", registration.id)
+      .order("member_order", { ascending: true });
+
+    let ecpayLink = registration.ecpay_link;
+    if (
+      registration.payment_amount > 0 &&
+      registration.payment_method === "online" &&
+      !ecpayLink
+    ) {
+      ecpayLink = `${siteUrl}/api/payments/ecpay/checkout/${registration.id}`;
+      await admin.from("registrations").update({ ecpay_link: ecpayLink }).eq("id", registration.id);
+    }
+
+    const { subject, body: emailBody } = buildReviewResultEmail({
+      sessionName: session?.name ?? "",
+      admissionStatus: registration.admission_status,
+      waitlistRank: registration.waitlist_rank,
+      members: (members ?? []).map((m) => ({
+        name: m.name,
+        feeReviewResult: m.fee_review_result,
+        feeCategoryLabel: m.fee_category_id ? (feeCategoryMap.get(m.fee_category_id) ?? null) : null,
+      })),
+      paymentAmount: registration.payment_amount,
+      paymentMethod: registration.payment_method,
+      ecpayLink,
+      manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
+    });
+
+    const result = await adapter.sendEmail({
+      to: registration.contact_email,
+      subject,
+      body: emailBody,
+    });
+
+    await admin.from("email_logs").insert({
+      registration_id: registration.id,
+      type: "審核結果",
+      status: result.status,
+      sent_at: result.status === "sent" ? new Date().toISOString() : null,
+      error_message: result.errorMessage ?? null,
+      subject,
+      body: emailBody,
+    });
+
+    if (result.status === "sent") {
+      sent += 1;
+    } else {
+      failed += 1;
+    }
+  }
+
+  return NextResponse.json({ total: (registrations ?? []).length, sent, failed });
+}
