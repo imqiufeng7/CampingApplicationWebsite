@@ -23,6 +23,11 @@ const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: strin
     label: "審核結果/繳費通知（後台批次寄送）",
     placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   },
+  {
+    type: "退回補件",
+    label: "需補件通知（審核設為「退回補件」時寄出）",
+    placeholders: ["活動名稱", "報名編號", "補件原因", "修改連結"],
+  },
 ];
 
 export default async function SessionBuilderPage({

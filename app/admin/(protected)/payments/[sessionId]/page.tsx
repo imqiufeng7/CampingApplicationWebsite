@@ -55,6 +55,15 @@ export default async function PaymentListPage({
   const paymentMethodLabel = (method: string | null) =>
     method === "online" ? "線上刷卡/ATM" : method === "manual" ? "人工轉帳" : "-";
 
+  const paymentStatusClass = (status: string, cancelled: boolean) =>
+    cancelled
+      ? "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200"
+      : status === "已完成"
+        ? "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200"
+        : status === "待繳費"
+          ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
+          : "bg-muted text-muted-foreground";
+
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
       <h1 className="text-lg font-semibold">{session?.name} — 繳費核對</h1>
@@ -89,8 +98,11 @@ export default async function PaymentListPage({
                     {r.is_cancelled && <Badge variant="destructive" className="ml-1">已取消</Badge>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={r.payment_status === "已完成" ? "default" : "secondary"}>
-                      {r.payment_status}
+                    <Badge
+                      variant="secondary"
+                      className={paymentStatusClass(r.payment_status, r.is_cancelled)}
+                    >
+                      {r.is_cancelled ? "取消" : r.payment_status}
                     </Badge>
                   </TableCell>
                   <TableCell>{r.payment_amount}</TableCell>
@@ -99,7 +111,7 @@ export default async function PaymentListPage({
                   <TableCell>{r.ecpay_trade_no ?? "-"}</TableCell>
                   <TableCell>
                     <Link
-                      href={`/admin/registrations/${sessionId}/${r.id}`}
+                      href={`/admin/registrations/${sessionId}/${r.id}?view=payment`}
                       className="text-primary underline"
                     >
                       查看/核對

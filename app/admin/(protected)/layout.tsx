@@ -6,7 +6,7 @@ import { SignOutButton } from "@/components/admin/SignOutButton";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await getCurrentAdmin();
 
-  // middleware.ts already redirects unauthenticated users to /admin/login. This
+  // proxy.ts already redirects unauthenticated users to /admin/login. This
   // handles the remaining case: a Supabase-authenticated user with no admin_users row.
   if (!admin) {
     return (

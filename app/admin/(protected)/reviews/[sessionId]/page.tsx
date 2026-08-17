@@ -25,7 +25,7 @@ export default async function ReviewListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, submitted_at, contact_email, contact_phone, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
+      "id, registration_seq, submitted_at, contact_email, contact_phone, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, resubmission_reason, duplicate_flag, registration_category_id"
     )
     .eq("session_id", sessionId);
 
@@ -35,7 +35,7 @@ export default async function ReviewListPage({
       ? supabase
           .from("registration_members")
           .select(
-            "id, registration_id, member_order, name, identity_type_id, org_selected, org_other_text, fee_category_id, fee_review_result"
+            "id, registration_id, member_order, name, identity_type_id, org_selected, org_other_text, fee_category_id, fee_review_result, birth_year_roc, birth_month, birth_day"
           )
           .in("registration_id", registrationIds)
           .order("member_order", { ascending: true })

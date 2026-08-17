@@ -36,9 +36,12 @@ import {
   EditableSelect,
   EditableText,
 } from "@/components/admin/reviews/EditableCell";
+import { ReviewStatusCell } from "@/components/admin/reviews/ReviewStatusCell";
 import { MemberDocumentsDialog } from "@/components/admin/reviews/MemberDocumentsDialog";
+import { ExportMenu } from "@/components/admin/reviews/ExportMenu";
 import { updateRegistrationField, type RegistrationEditableField } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
 import { formatRegistrationNo } from "@/lib/registrationNo";
+import { cn } from "@/lib/utils";
 import type { FieldPermissions } from "@/lib/auth/permissions";
 
 export type ReviewRowMember = {
@@ -49,6 +52,9 @@ export type ReviewRowMember = {
   org_other_text: string | null;
   fee_category_id: string | null;
   fee_review_result: string;
+  birth_year_roc: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
 };
 
 export type ReviewRowFile = { id: string; member_id: string | null; file_type: string };
@@ -71,6 +77,7 @@ export type ReviewRow = {
   admin_note: string | null;
   is_cancelled: boolean;
   cancel_reason: string | null;
+  resubmission_reason: string | null;
   duplicate_flag: boolean;
   registration_category_id: string | null;
   memberNames: string[];
@@ -78,14 +85,8 @@ export type ReviewRow = {
   files: ReviewRowFile[];
 };
 
-const REVIEW_STATUS_OPTIONS = [
-  { value: "審核中", label: "審核中", colorClass: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200" },
-  { value: "審核通過", label: "審核通過", colorClass: "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200" },
-  { value: "退回補件", label: "退回補件", colorClass: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200" },
-];
-
 const ADMISSION_STATUS_OPTIONS = [
-  { value: "未抽籤", label: "未抽籤", colorClass: "bg-muted text-muted-foreground" },
+  { value: "待確認", label: "待確認", colorClass: "bg-muted text-muted-foreground" },
   { value: "正取", label: "正取", colorClass: "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200" },
   { value: "備取", label: "備取", colorClass: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200" },
   { value: "取消", label: "取消", colorClass: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200" },
@@ -94,6 +95,7 @@ const ADMISSION_STATUS_OPTIONS = [
 const PAYMENT_BADGE_CLASS: Record<string, string> = {
   已完成: "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200",
   待繳費: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
+  取消: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200",
   無需繳費: "bg-muted text-muted-foreground",
 };
 
@@ -148,8 +150,8 @@ export function ReviewTable({
   const [admissionFilter, setAdmissionFilter] = useState("");
   const [cancelledFilter, setCancelledFilter] = useState("");
 
-  // 審核結果/錄取結果/備取順位/分組/睡袋 all live in the 錄取分組結果 group; 取消狀態 is its
-  // own group (取消退費資訊) since a role could edit one without the other.
+  // 審核結果/錄取結果/備取順位/分組/睡袋/補件原因 all live in the 錄取分組結果 group; 取消狀態 is
+  // its own group (取消退費資訊) since a role could edit one without the other.
   const canEditAdmission = fieldPermissions["錄取分組結果"] === "editable";
   const hideAdmission = fieldPermissions["錄取分組結果"] === "hidden";
   const canEditCancel = fieldPermissions["取消退費資訊"] === "editable";
@@ -213,6 +215,20 @@ export function ReviewTable({
 
   const summary = useMemo(() => {
     const active = data.filter((r) => !r.is_cancelled);
+
+    const zoneCounts = new Map<string, number>();
+    for (const r of active) {
+      if (!r.group_zone) continue;
+      zoneCounts.set(r.group_zone, (zoneCounts.get(r.group_zone) ?? 0) + 1);
+    }
+
+    const admittedByCategory = new Map<string, number>();
+    for (const r of active) {
+      if (r.admission_status !== "正取" || !r.registration_category_id) continue;
+      const label = registrationCategoryMap.get(r.registration_category_id) ?? "-";
+      admittedByCategory.set(label, (admittedByCategory.get(label) ?? 0) + 1);
+    }
+
     return {
       totalCount: data.length,
       cancelledCount: data.length - active.length,
@@ -221,11 +237,13 @@ export function ReviewTable({
       collectedAmount: active
         .filter((r) => r.payment_status === "已完成")
         .reduce((sum, r) => sum + r.payment_amount, 0),
-      zoneCount: new Set(active.map((r) => r.group_zone).filter(Boolean)).size,
+      zoneCounts: [...zoneCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+      admittedByCategory: [...admittedByCategory.entries()],
+      admittedTotal: active.filter((r) => r.admission_status === "正取").length,
       selfSuppliedBags: active.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
       rentedBags: active.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
     };
-  }, [data]);
+  }, [data, registrationCategoryMap]);
 
   const columns = useMemo<ColumnDef<typeof reviewTableFeatures, ReviewRow, unknown>[]>(
     () => {
@@ -292,11 +310,15 @@ export function ReviewTable({
             header: "審核結果",
             accessorFn: (r) => r.review_status,
             cell: ({ row }) => (
-              <EditableSelect
-                value={row.original.review_status}
-                options={REVIEW_STATUS_OPTIONS}
+              <ReviewStatusCell
+                sessionId={sessionId}
+                registrationId={row.original.id}
+                reviewStatus={row.original.review_status}
+                resubmissionReason={row.original.resubmission_reason ?? ""}
+                members={row.original.members}
                 disabled={!canEditAdmission}
-                onSave={saveField(row.original.id, "review_status")}
+                onSaveReviewStatus={saveField(row.original.id, "review_status")}
+                onSaveReason={saveField(row.original.id, "resubmission_reason")}
               />
             ),
           },
@@ -369,7 +391,7 @@ export function ReviewTable({
           },
           {
             id: "sleeping_bag",
-            header: "睡袋 自備/租借",
+            header: "睡袋(墊) 自備/租借",
             accessorFn: (r) => r.sleeping_bag_own_qty,
             cell: ({ row }) => (
               <span title="依成員選擇的免付費類別自動計算，不可手動修改">
@@ -383,7 +405,7 @@ export function ReviewTable({
       if (!hideCancel) {
         cols.push({
           id: "cancelled",
-          header: "取消狀態",
+          header: "取消",
           enableSorting: false,
           cell: ({ row }) => (
             <div className="grid gap-1">
@@ -417,8 +439,10 @@ export function ReviewTable({
             <Badge variant="secondary" className={PAYMENT_BADGE_CLASS[row.original.payment_status]}>
               {row.original.payment_status}
             </Badge>
-            {row.original.payment_amount > 0 && (
-              <span className="ml-1 font-mono">${row.original.payment_amount.toLocaleString("zh-TW")}</span>
+            {row.original.payment_status === "待繳費" && row.original.payment_amount > 0 && (
+              <div className="text-muted-foreground mt-0.5 font-mono text-xs">
+                ${row.original.payment_amount.toLocaleString("zh-TW")}
+              </div>
             )}
           </div>
         ),
@@ -462,7 +486,7 @@ export function ReviewTable({
       cols.push(
         {
           id: "flags",
-          header: "狀態",
+          header: "疑似重複",
           enableSorting: false,
           cell: ({ row }) =>
             row.original.duplicate_flag ? <Badge variant="secondary">疑似重複</Badge> : null,
@@ -512,14 +536,24 @@ export function ReviewTable({
 
   return (
     <div className="grid gap-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        <SummaryStat label="總筆數" value={summary.totalCount} />
-        <SummaryStat label="總人數" value={summary.totalPeople} />
-        <SummaryStat label="已繳費" value={summary.paidCount} />
-        <SummaryStat label="收費總額" value={`$${summary.collectedAmount.toLocaleString("zh-TW")}`} />
-        <SummaryStat label="分組區域數" value={summary.zoneCount} />
-        <SummaryStat label="自備/租借睡袋" value={`${summary.selfSuppliedBags} / ${summary.rentedBags}`} />
-        <SummaryStat label="已取消" value={summary.cancelledCount} />
+      <div className="bg-muted/40 grid grid-cols-2 gap-2 rounded-xl border p-3 sm:grid-cols-4">
+        <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
+        <StatPair
+          primary={
+            registrationCategoryMap.size > 0
+              ? { label: "各類別錄取人數", breakdown: summary.admittedByCategory }
+              : { label: "已錄取", value: summary.admittedTotal }
+          }
+          secondary={{ label: "分組區域", breakdown: summary.zoneCounts }}
+        />
+        <StatPair
+          primary={{ label: "已繳費", value: summary.paidCount }}
+          secondary={{ label: "收費總額", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
+        />
+        <StatPair
+          primary={{ label: "已取消", value: summary.cancelledCount }}
+          secondary={{ label: "睡墊情況（自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -535,11 +569,9 @@ export function ReviewTable({
           className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
         >
           <option value="">全部審核結果</option>
-          {REVIEW_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <option value="審核中">審核中</option>
+          <option value="審核通過">審核通過</option>
+          <option value="退回補件">退回補件</option>
         </select>
         <select
           value={admissionFilter}
@@ -565,7 +597,7 @@ export function ReviewTable({
 
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" />}>
-            欄位
+            查看欄位
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {table
@@ -583,6 +615,8 @@ export function ReviewTable({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <ExportMenu rows={filtered} registrationCategoryMap={registrationCategoryMap} />
+
         <span className="text-muted-foreground ml-auto text-sm">共 {filtered.length} 筆</span>
       </div>
 
@@ -598,7 +632,10 @@ export function ReviewTable({
                       ? header.column.getToggleSortingHandler()
                       : undefined
                   }
-                  className={header.column.getCanSort() ? "cursor-pointer select-none" : undefined}
+                  className={cn(
+                    "bg-muted/50 h-11 px-3 text-center",
+                    header.column.getCanSort() ? "cursor-pointer select-none" : undefined
+                  )}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                   {header.column.getIsSorted() === "asc" && " ▲"}
@@ -612,7 +649,9 @@ export function ReviewTable({
           {table.getRowModel().rows.map((row) => (
             <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                <TableCell key={cell.id} className="py-2.5 align-top">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
               ))}
             </TableRow>
           ))}
@@ -649,11 +688,41 @@ export function ReviewTable({
   );
 }
 
-function SummaryStat({ label, value }: { label: string; value: string | number }) {
+type StatValue = { label: string; value: string | number } | { label: string; breakdown: [string, number][] };
+
+function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatValue }) {
   return (
-    <div className="rounded-lg border p-2 text-center">
-      <div className="text-lg font-semibold">{value}</div>
-      <div className="text-muted-foreground text-xs">{label}</div>
+    <div className="bg-card rounded-lg border p-2.5">
+      <StatLine stat={primary} size="lg" />
+      <div className="my-1.5 border-t" />
+      <StatLine stat={secondary} size="sm" />
+    </div>
+  );
+}
+
+function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
+  if ("breakdown" in stat) {
+    return (
+      <div>
+        <p className="text-muted-foreground mb-0.5 text-xs">{stat.label}</p>
+        {stat.breakdown.length === 0 ? (
+          <p className="text-muted-foreground text-sm">無資料</p>
+        ) : (
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+            {stat.breakdown.map(([k, v]) => (
+              <span key={k} className={size === "lg" ? "text-sm font-semibold" : "text-muted-foreground text-xs"}>
+                {k} {v}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="text-muted-foreground mb-0.5 text-xs">{stat.label}</p>
+      <p className={size === "lg" ? "text-xl font-bold" : "text-sm font-medium"}>{stat.value}</p>
     </div>
   );
 }

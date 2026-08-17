@@ -13,10 +13,17 @@ import { sortRegistrationsForReview } from "@/lib/reviewSort";
 
 export default async function RegistrationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sessionId: string; registrationId: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { sessionId, registrationId } = await params;
+  const { view } = await searchParams;
+  // Entered from the 繳費 (payments) list — scope this page to payment info only, even
+  // if the admin's role would otherwise also have edit access to review/admission
+  // fields, so the payment-focused workflow doesn't double as a review workflow.
+  const paymentOnly = view === "payment";
   const admin = await requireSessionAccess(sessionId);
   const supabase = await createClient();
 
@@ -98,11 +105,12 @@ export default async function RegistrationDetailPage({
   // accepting the rest. The per-field-group inline table (reviews list) doesn't have
   // this limitation.
   const canEditReview =
+    !paymentOnly &&
     admin.fieldPermissions["錄取分組結果"] === "editable" &&
     admin.fieldPermissions["取消退費資訊"] === "editable" &&
     admin.fieldPermissions["備註"] === "editable";
   const canEditPayment = admin.fieldPermissions["繳費狀態"] === "editable";
-  const canEditFeeReview = admin.fieldPermissions["免付費審核結果"] === "editable";
+  const canEditFeeReview = !paymentOnly && admin.fieldPermissions["免付費審核結果"] === "editable";
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
@@ -122,7 +130,7 @@ export default async function RegistrationDetailPage({
         </div>
         <div className="flex items-center gap-2 text-sm">
           {prevId ? (
-            <Link href={`/admin/registrations/${sessionId}/${prevId}`}>
+            <Link href={`/admin/registrations/${sessionId}/${prevId}${paymentOnly ? "?view=payment" : ""}`}>
               <Button type="button" variant="outline" size="sm">
                 ← 上一筆
               </Button>
@@ -133,7 +141,7 @@ export default async function RegistrationDetailPage({
             </Button>
           )}
           {nextId ? (
-            <Link href={`/admin/registrations/${sessionId}/${nextId}`}>
+            <Link href={`/admin/registrations/${sessionId}/${nextId}${paymentOnly ? "?view=payment" : ""}`}>
               <Button type="button" variant="outline" size="sm">
                 下一筆 →
               </Button>
@@ -186,19 +194,21 @@ export default async function RegistrationDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>審核 / 錄取 / 分組 / 取消{!canEditReview && "（唯讀）"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ReviewPanel
-            sessionId={sessionId}
-            registrationId={registrationId}
-            registration={registration}
-            editable={canEditReview}
-          />
-        </CardContent>
-      </Card>
+      {!paymentOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle>審核 / 錄取 / 分組 / 取消{!canEditReview && "（唯讀）"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReviewPanel
+              sessionId={sessionId}
+              registrationId={registrationId}
+              registration={registration}
+              editable={canEditReview}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

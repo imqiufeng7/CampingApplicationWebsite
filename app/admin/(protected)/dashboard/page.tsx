@@ -11,7 +11,7 @@ const REVIEW_COLORS: Record<string, string> = {
   退回補件: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200",
 };
 const ADMISSION_COLORS: Record<string, string> = {
-  未抽籤: "bg-muted text-muted-foreground",
+  待確認: "bg-muted text-muted-foreground",
   正取: "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200",
   備取: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
   取消: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200",
@@ -41,24 +41,33 @@ export default async function DashboardPage() {
   const { data: sessions } = await sessionsQuery;
   const sessionIds = (sessions ?? []).map((s) => s.id);
 
-  const [{ data: series }, { data: registrations }, { data: registrationCategories }] = await Promise.all([
-    supabase.from("event_series").select("id, name"),
-    sessionIds.length
-      ? supabase
-          .from("registrations")
-          .select(
-            "id, session_id, registration_category_id, review_status, admission_status, payment_status, payment_amount, is_cancelled"
-          )
-          .in("session_id", sessionIds)
-      : Promise.resolve({ data: [] }),
-    sessionIds.length
-      ? supabase
-          .from("session_registration_categories")
-          .select("id, session_id, label, capacity_total, admission_quota")
-          .in("session_id", sessionIds)
-          .order("sort_order", { ascending: true })
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [{ data: series }, { data: registrations }, { data: registrationCategories }, { data: activityLog }] =
+    await Promise.all([
+      supabase.from("event_series").select("id, name"),
+      sessionIds.length
+        ? supabase
+            .from("registrations")
+            .select(
+              "id, session_id, registration_category_id, review_status, admission_status, payment_status, payment_amount, is_cancelled"
+            )
+            .in("session_id", sessionIds)
+        : Promise.resolve({ data: [] }),
+      sessionIds.length
+        ? supabase
+            .from("session_registration_categories")
+            .select("id, session_id, label, capacity_total, admission_quota")
+            .in("session_id", sessionIds)
+            .order("sort_order", { ascending: true })
+        : Promise.resolve({ data: [] }),
+      sessionIds.length
+        ? supabase
+            .from("admin_activity_log")
+            .select("session_id, admin_email, summary, created_at")
+            .in("session_id", sessionIds)
+            .order("created_at", { ascending: false })
+            .limit(200)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const registrationIds = (registrations ?? []).map((r) => r.id);
   const { data: members } = registrationIds.length
@@ -130,18 +139,32 @@ export default async function DashboardPage() {
     categoriesBySession.set(rc.session_id, list);
   }
 
-  const categoryStatsById = new Map<string, { activeGroups: number; admittedGroups: number }>();
+  const categoryStatsById = new Map<
+    string,
+    { activeGroups: number; admittedGroups: number; admittedPeople: number }
+  >();
   for (const r of registrations ?? []) {
     if (!r.registration_category_id) continue;
     const stat = categoryStatsById.get(r.registration_category_id) ?? {
       activeGroups: 0,
       admittedGroups: 0,
+      admittedPeople: 0,
     };
     if (!r.is_cancelled) {
       stat.activeGroups += 1;
-      if (r.admission_status === "正取") stat.admittedGroups += 1;
+      if (r.admission_status === "正取") {
+        stat.admittedGroups += 1;
+        stat.admittedPeople += memberCountByRegistration.get(r.id) ?? 0;
+      }
     }
     categoryStatsById.set(r.registration_category_id, stat);
+  }
+
+  const activityBySession = new Map<string, { admin_email: string | null; summary: string; created_at: string }[]>();
+  for (const a of activityLog ?? []) {
+    const list = activityBySession.get(a.session_id) ?? [];
+    if (list.length < 8) list.push(a);
+    activityBySession.set(a.session_id, list);
   }
 
   return (
@@ -154,14 +177,36 @@ export default async function DashboardPage() {
           const admittedGroups = stats.admissionStatus["正取"] ?? 0;
           const overQuota = s.admission_quota != null && admittedGroups > s.admission_quota;
           const sessionCategories = categoriesBySession.get(s.id) ?? [];
+          const activity = activityBySession.get(s.id) ?? [];
           return (
             <Card key={s.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">
                     {seriesNameMap.get(s.series_id)} - {s.name}
                   </CardTitle>
-                  <Badge variant={s.status === "open" ? "default" : "secondary"}>{s.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    {activity.length > 0 && (
+                      <details className="relative">
+                        <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-xs underline">
+                          📝 異動紀錄（{activity.length}）
+                        </summary>
+                        <div className="bg-popover absolute right-0 z-10 mt-1 grid w-72 gap-1.5 rounded-lg border p-2.5 shadow-md">
+                          {activity.map((a, i) => (
+                            <div key={i} className="text-xs">
+                              <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · {new Date(a.created_at).toLocaleString("zh-TW")}
+                              </span>
+                              <div className="text-muted-foreground">{a.summary}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                    <Badge variant={s.status === "open" ? "default" : "secondary"}>{s.status}</Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="grid gap-4 text-sm">
@@ -192,6 +237,7 @@ export default async function DashboardPage() {
                         const catStat = categoryStatsById.get(rc.id) ?? {
                           activeGroups: 0,
                           admittedGroups: 0,
+                          admittedPeople: 0,
                         };
                         const catOverQuota =
                           rc.admission_quota != null && catStat.admittedGroups > rc.admission_quota;
@@ -211,6 +257,9 @@ export default async function DashboardPage() {
                             >
                               錄取 {catStat.admittedGroups}
                               {rc.admission_quota ? ` / ${rc.admission_quota}` : ""}
+                            </p>
+                            <p className="text-muted-foreground border-t mt-1 pt-1 text-xs">
+                              實際錄取人數 {catStat.admittedPeople}
                             </p>
                           </div>
                         );

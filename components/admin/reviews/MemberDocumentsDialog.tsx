@@ -25,7 +25,30 @@ type MemberInfo = {
   org_other_text: string | null;
   fee_category_id: string | null;
   fee_review_result: string;
+  birth_year_roc: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
 };
+
+// 足歲 (actual/full age): counts down until this year's birthday has passed, not just
+// current-year minus birth-year. ROC year + 1911 = Gregorian year.
+function calcAge(rocYear: number | null, month: number | null, day: number | null): number | null {
+  if (!rocYear) return null;
+  const birthYear = rocYear + 1911;
+  const now = new Date();
+  let age = now.getFullYear() - birthYear;
+  if (month && day) {
+    const thisYearBirthdayPassed =
+      now.getMonth() + 1 > month || (now.getMonth() + 1 === month && now.getDate() >= day);
+    if (!thisYearBirthdayPassed) age -= 1;
+  }
+  return age;
+}
+
+function formatBirthDate(rocYear: number | null, month: number | null, day: number | null): string {
+  if (!rocYear) return "-";
+  return `民國 ${rocYear} 年${month ? ` ${month} 月` : ""}${day ? ` ${day} 日` : ""}`;
+}
 
 type FileInfo = { id: string; member_id: string | null; file_type: string };
 
@@ -115,6 +138,13 @@ function MemberPanel({
       <div className="text-sm">
         <div className="font-medium">{member.name}</div>
         <div className="text-muted-foreground">{idNumber ?? "讀取中..."}</div>
+        <div className="text-muted-foreground">
+          {formatBirthDate(member.birth_year_roc, member.birth_month, member.birth_day)}
+          {(() => {
+            const age = calcAge(member.birth_year_roc, member.birth_month, member.birth_day);
+            return age != null ? `（足歲 ${age} 歲）` : "";
+          })()}
+        </div>
         <div className="text-muted-foreground">
           {member.identity_type_id ? (identityTypeMap.get(member.identity_type_id) ?? "-") : "-"}
           {member.org_selected && ` · ${member.org_selected}`}

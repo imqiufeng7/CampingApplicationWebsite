@@ -44,6 +44,14 @@ export function ReviewPanel({
             <option value="退回補件">退回補件</option>
           </select>
         </div>
+        <div className="grid gap-2 sm:col-span-2">
+          <Label htmlFor="resubmission_reason">需補件原因（設為「退回補件」時填寫，儲存後會自動 email 通知報名者）</Label>
+          <Textarea
+            id="resubmission_reason"
+            name="resubmission_reason"
+            defaultValue={registration.resubmission_reason ?? ""}
+          />
+        </div>
         <div className="grid gap-2">
           <Label htmlFor="admission_status">錄取結果</Label>
           <select
@@ -52,7 +60,7 @@ export function ReviewPanel({
             defaultValue={registration.admission_status}
             className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           >
-            <option value="未抽籤">未抽籤</option>
+            <option value="待確認">待確認</option>
             <option value="正取">正取</option>
             <option value="備取">備取</option>
             <option value="取消">取消</option>
@@ -84,7 +92,7 @@ export function ReviewPanel({
           <Input id="tent_type" name="tent_type" defaultValue={registration.tent_type ?? ""} />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="sleeping_bag_own_qty">睡袋自備數量</Label>
+          <Label htmlFor="sleeping_bag_own_qty">睡袋(墊)自備數量</Label>
           <Input
             id="sleeping_bag_own_qty"
             name="sleeping_bag_own_qty"
@@ -93,7 +101,7 @@ export function ReviewPanel({
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="sleeping_bag_rent_qty">睡袋租借數量</Label>
+          <Label htmlFor="sleeping_bag_rent_qty">睡袋(墊)租借數量</Label>
           <Input
             id="sleeping_bag_rent_qty"
             name="sleeping_bag_rent_qty"

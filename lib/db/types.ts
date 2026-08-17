@@ -8,7 +8,7 @@ import type { FieldGroup, PermissionLevel } from "@/lib/auth/permissions";
 export type EventSeriesStatus = "draft" | "open" | "closed" | "archived";
 export type EventSessionStatus = "draft" | "open" | "closed" | "archived";
 export type ReviewStatus = "審核中" | "審核通過" | "退回補件";
-export type AdmissionStatus = "未抽籤" | "正取" | "備取" | "取消";
+export type AdmissionStatus = "待確認" | "正取" | "備取" | "取消";
 export type PaymentStatus = "無需繳費" | "待繳費" | "已完成";
 export type PaymentMethod = "online" | "manual";
 export type RefundStatus = "待退" | "已退";
@@ -17,7 +17,14 @@ export type FeeAppliesTo = "免付費" | "減免";
 // No longer a closed literal union — roles are rows in admin_roles now, vendor
 // created them freely. This is an opaque role id (uuid), not a role name.
 export type AdminRole = string;
-export type EmailType = "審核結果" | "付款通知" | "場次資訊" | "報到QR" | "遞補通知" | "報名確認";
+export type EmailType =
+  | "審核結果"
+  | "付款通知"
+  | "場次資訊"
+  | "報到QR"
+  | "遞補通知"
+  | "報名確認"
+  | "退回補件";
 export type EmailStatus = "pending" | "sent" | "failed";
 
 export interface Database {
@@ -204,6 +211,7 @@ export interface Database {
           refund_status: RefundStatus | null;
           duplicate_flag: boolean;
           duplicate_note: string | null;
+          resubmission_reason: string | null;
           checkin_at: string | null;
           checkin_by: string | null;
           qr_token: string;
@@ -240,6 +248,7 @@ export interface Database {
             | "refund_status"
             | "duplicate_flag"
             | "duplicate_note"
+            | "resubmission_reason"
             | "admin_note"
           >
         >;
@@ -353,6 +362,21 @@ export interface Database {
           registration_id: string;
           type: EmailType;
         };
+        Update: never;
+        Relationships: [];
+      };
+      admin_activity_log: {
+        Row: {
+          id: string;
+          session_id: string;
+          registration_id: string | null;
+          registration_seq: number | null;
+          admin_user_id: string | null;
+          admin_email: string | null;
+          summary: string;
+          created_at: string;
+        };
+        Insert: never; // only ever inserted by the fn_log_registration_change trigger
         Update: never;
         Relationships: [];
       };

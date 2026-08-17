@@ -150,7 +150,7 @@ function FeeCategoryRow({
               defaultChecked={category.auto_approve}
             />
             <Label htmlFor={`fc-auto-approve-${category.id}`} className="font-normal">
-              選取後不需審核，錄取後自動免繳費（例：自備帳篷/睡袋者）
+              選取後立即自動審核通過、免繳費（例：自備帳篷/睡袋(墊)者）
             </Label>
             {category.auto_approve && (
               <Badge variant="secondary" className="ml-1">
@@ -283,7 +283,7 @@ export function FeeCategoryEditor({
         <div className="flex items-center gap-2 sm:col-span-2">
           <Checkbox id="fc-auto-approve" name="auto_approve" />
           <Label htmlFor="fc-auto-approve" className="font-normal">
-            選取後不需審核，錄取後自動免繳費（例：自備帳篷/睡袋者）
+            選取後立即自動審核通過、免繳費（例：自備帳篷/睡袋(墊)者）
           </Label>
         </div>
         {state.error && <p className="text-destructive text-sm sm:col-span-2">{state.error}</p>}

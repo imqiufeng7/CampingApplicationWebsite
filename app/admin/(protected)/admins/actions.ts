@@ -38,7 +38,10 @@ export async function createAdminUser(_prev: ActionState, formData: FormData): P
   }
 
   const admin = createAdminClient();
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/admin/accept-invite`,
+  });
 
   let userId = invited?.user?.id;
 

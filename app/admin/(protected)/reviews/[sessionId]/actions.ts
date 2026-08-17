@@ -22,6 +22,7 @@ export type RegistrationEditableField =
   | "waitlist_rank"
   | "group_zone"
   | "group_number"
+  | "resubmission_reason"
   | "is_cancelled"
   | "cancel_reason"
   | "admin_note";
@@ -32,6 +33,7 @@ const FIELD_GROUP_BY_COLUMN: Record<RegistrationEditableField, FieldGroup> = {
   waitlist_rank: "錄取分組結果",
   group_zone: "錄取分組結果",
   group_number: "錄取分組結果",
+  resubmission_reason: "錄取分組結果",
   is_cancelled: "取消退費資訊",
   cancel_reason: "取消退費資訊",
   admin_note: "備註",

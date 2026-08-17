@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, requireFieldEditable, requireSessionAccess } from "@/lib/auth/guards";
+import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
 
 export type ActionState = { error: string | null };
 
@@ -57,12 +59,24 @@ export async function updateRegistrationReview(
       cancel_reason: isCancelled ? str(raw.cancel_reason) : null,
       refund_amount: num(raw.refund_amount),
       refund_status: str(raw.refund_status) as never,
+      resubmission_reason: str(raw.resubmission_reason),
       admin_note: str(raw.admin_note),
     })
     .eq("id", registrationId);
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Saving with 退回補件 selected always (re)sends the notice — lets a reviewer
+  // correct the reason text and resend, matching the review-table cell's behavior.
+  if (raw.review_status === "退回補件") {
+    const adminClient = createAdminClient();
+    const sendResult = await sendResubmissionRequestEmail(adminClient, registrationId);
+    if (!sendResult.ok) {
+      revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+      return { error: `已儲存，但補件通知寄送失敗：${sendResult.error}` };
+    }
   }
 
   revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
