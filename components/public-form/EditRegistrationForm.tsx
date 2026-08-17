@@ -146,7 +146,7 @@ export function EditRegistrationForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="animate-fade-up mx-auto grid max-w-2xl gap-6"
+        className="animate-fade-up mx-auto grid max-w-2xl gap-7"
       >
         <div className="grid gap-2">
           <span className="bg-accent text-accent-foreground inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide">

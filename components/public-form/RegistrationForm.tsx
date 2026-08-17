@@ -289,7 +289,7 @@ export function RegistrationForm({
 
   if (!agreedToTerms) {
     return (
-      <div className="animate-fade-up mx-auto grid max-w-2xl gap-6">
+      <div className="animate-fade-up mx-auto grid max-w-2xl gap-7">
         {introContent}
         <ConsentGate
           activityTitle={activityTitle}
@@ -304,7 +304,7 @@ export function RegistrationForm({
   // 這個部分去呈現使用者報名時需要填寫的欄位".
   if (hasCategories && !selectedCategoryId) {
     return (
-      <div className="animate-fade-up mx-auto grid max-w-2xl gap-6">
+      <div className="animate-fade-up mx-auto grid max-w-2xl gap-7">
         {introContent}
         <RegistrationCategoryPicker
           categories={registrationCategories}
@@ -319,7 +319,7 @@ export function RegistrationForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="animate-fade-up mx-auto grid max-w-2xl gap-6 pt-14 sm:pt-0"
+        className="animate-fade-up mx-auto grid max-w-2xl gap-7 pt-14 sm:pt-0"
       >
         {introContent}
 

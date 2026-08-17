@@ -21,16 +21,19 @@ export function SectionCard({
   return (
     <div
       className={cn(
-        "animate-fade-up ring-foreground/10 overflow-hidden rounded-xl bg-card ring-1",
+        // Softer, more spacious card treatment (larger radius, a colored glow instead
+        // of a flat border) — closer to the reference layout the client liked, while
+        // keeping our own poster-derived palette instead of copying its colors.
+        "animate-fade-up ring-foreground/10 shadow-foreground/10 overflow-hidden rounded-2xl bg-card shadow-xl ring-1",
         className
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="bg-secondary text-secondary-foreground flex items-center justify-between gap-2 px-4 py-2.5">
+      <div className="bg-secondary text-secondary-foreground flex items-center justify-between gap-2 px-5 py-3">
         <h2 className="font-heading text-base font-bold">{title}</h2>
         {action}
       </div>
-      <div className={cn("p-4 text-sm", contentClassName)}>{children}</div>
+      <div className={cn("p-5 text-sm sm:p-6", contentClassName)}>{children}</div>
     </div>
   );
 }
