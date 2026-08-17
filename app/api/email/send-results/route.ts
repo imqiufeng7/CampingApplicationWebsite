@@ -76,12 +76,12 @@ export async function POST(request: Request) {
       .eq("registration_id", registration.id)
       .order("member_order", { ascending: true });
 
-    let ecpayLink = registration.ecpay_link;
-    if (
-      registration.payment_amount > 0 &&
-      registration.payment_method === "online" &&
-      !ecpayLink
-    ) {
+    // Always recomputed from the current NEXT_PUBLIC_SITE_URL rather than trusting
+    // whatever's stored — a stored value only reflects whichever environment last
+    // wrote it (e.g. a stale localhost URL left over from local testing against this
+    // same database), and would otherwise go out in emails forever once cached.
+    let ecpayLink: string | null = null;
+    if (registration.payment_amount > 0 && registration.payment_method === "online") {
       ecpayLink = `${siteUrl}/api/payments/ecpay/checkout/${registration.id}`;
       await admin.from("registrations").update({ ecpay_link: ecpayLink }).eq("id", registration.id);
     }

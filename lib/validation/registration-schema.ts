@@ -75,7 +75,10 @@ export function buildRegistrationSchema(config: SessionFormConfig) {
 
   return z.object({
     contact_email: z.email("請輸入有效的 Email"),
-    contact_phone: z.string().min(1, "請填寫聯絡電話"),
+    contact_phone: z
+      .string()
+      .min(1, "請填寫聯絡電話")
+      .regex(/^09\d{2}-\d{6}$/, "電話格式錯誤，請填寫 09XX-XXXXXX（例：0912-345678）"),
     members: z
       .array(memberSchema)
       .min(1, "至少需要一位成員")
@@ -98,13 +101,20 @@ export type RegistrationFormOutput = z.output<RegistrationSchema>;
 // Given a member's is_staff flag, which session_identity_types row it maps to. Most
 // sessions define exactly one identity type that requires an org field (工作人員) and
 // one that doesn't (民眾); this picks the first match of each.
+//
+// Deliberately no "?? identityTypes[0]" fallback: a session that only defines the
+// 工作人員 type (no 民眾 type) previously fell back to that one type for every
+// non-staff member too — silently mislabeling everyone as staff, which is exactly
+// what re-deriving is_staff from identity_type_id on the edit page then reflected
+// back as "all members checked". Returning null when there's no matching type is
+// correct: it means "no identity type applies", not "guess one."
 export function resolveIdentityTypeId(
   isStaff: boolean,
   identityTypes: IdentityType[]
 ): string | null {
   const match = isStaff
     ? identityTypes.find((it) => it.requires_org_field)
-    : (identityTypes.find((it) => !it.requires_org_field) ?? identityTypes[0]);
+    : identityTypes.find((it) => !it.requires_org_field);
   return match?.id ?? null;
 }
 

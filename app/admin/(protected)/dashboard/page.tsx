@@ -185,28 +185,7 @@ export default async function DashboardPage() {
                   <CardTitle className="text-base">
                     {seriesNameMap.get(s.series_id)} - {s.name}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {activity.length > 0 && (
-                      <details className="relative">
-                        <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-xs underline">
-                          📝 異動紀錄（{activity.length}）
-                        </summary>
-                        <div className="bg-popover absolute right-0 z-10 mt-1 grid w-72 gap-1.5 rounded-lg border p-2.5 shadow-md">
-                          {activity.map((a, i) => (
-                            <div key={i} className="text-xs">
-                              <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
-                              <span className="text-muted-foreground">
-                                {" "}
-                                · {new Date(a.created_at).toLocaleString("zh-TW")}
-                              </span>
-                              <div className="text-muted-foreground">{a.summary}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                    <Badge variant={s.status === "open" ? "default" : "secondary"}>{s.status}</Badge>
-                  </div>
+                  <Badge variant={s.status === "open" ? "default" : "secondary"}>{s.status}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="grid gap-4 text-sm">
@@ -231,7 +210,7 @@ export default async function DashboardPage() {
 
                 {sessionCategories.length > 0 && (
                   <div>
-                    <p className="text-muted-foreground mb-1.5">依報名類別</p>
+                    <p className="text-muted-foreground mb-1.5 text-base">依報名類別</p>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {sessionCategories.map((rc) => {
                         const catStat = categoryStatsById.get(rc.id) ?? {
@@ -243,23 +222,38 @@ export default async function DashboardPage() {
                           rc.admission_quota != null && catStat.admittedGroups > rc.admission_quota;
                         return (
                           <div key={rc.id} className="rounded-lg border p-2">
-                            <p className="mb-1 text-xs font-medium">{rc.label}</p>
-                            <p className="text-muted-foreground text-xs">
-                              報名 {catStat.activeGroups}
+                            <p className="mb-1 text-base font-medium">{rc.label}</p>
+                            <p className="text-muted-foreground text-sm">
+                              報名{" "}
+                              <span className="text-foreground text-base font-semibold">
+                                {catStat.activeGroups}
+                              </span>
                               {rc.capacity_total ? ` / ${rc.capacity_total}` : ""}
                             </p>
                             <p
                               className={
                                 catOverQuota
-                                  ? "text-destructive text-xs font-medium"
-                                  : "text-muted-foreground text-xs"
+                                  ? "text-destructive text-sm font-medium"
+                                  : "text-muted-foreground text-sm"
                               }
                             >
-                              錄取 {catStat.admittedGroups}
+                              錄取{" "}
+                              <span
+                                className={
+                                  catOverQuota
+                                    ? "text-destructive text-base font-semibold"
+                                    : "text-foreground text-base font-semibold"
+                                }
+                              >
+                                {catStat.admittedGroups}
+                              </span>
                               {rc.admission_quota ? ` / ${rc.admission_quota}` : ""}
                             </p>
-                            <p className="text-muted-foreground border-t mt-1 pt-1 text-xs">
-                              實際錄取人數 {catStat.admittedPeople}
+                            <p className="text-muted-foreground mt-1 border-t pt-1 text-sm">
+                              實際錄取人數{" "}
+                              <span className="text-foreground text-base font-semibold">
+                                {catStat.admittedPeople}
+                              </span>
                             </p>
                           </div>
                         );
@@ -287,19 +281,17 @@ export default async function DashboardPage() {
                       <span className="text-muted-foreground col-span-full">尚無資料</span>
                     )}
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div className="rounded-lg border p-2 text-center">
-                      <div className="font-mono text-lg font-semibold">
+                  <div className="mt-2 rounded-lg border p-2 text-center">
+                    <div className="font-mono">
+                      <span className="text-lg font-semibold">
                         ${stats.amountCollected.toLocaleString("zh-TW")}
-                      </div>
-                      <div className="text-muted-foreground text-xs">已收金額</div>
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {" "}
+                        / ${stats.amountPending.toLocaleString("zh-TW")}
+                      </span>
                     </div>
-                    <div className="rounded-lg border p-2 text-center">
-                      <div className="font-mono text-lg font-semibold">
-                        ${stats.amountPending.toLocaleString("zh-TW")}
-                      </div>
-                      <div className="text-muted-foreground text-xs">待繳金額</div>
-                    </div>
+                    <div className="text-muted-foreground text-xs">已收金額 / 待收金額</div>
                   </div>
                 </div>
 
@@ -309,12 +301,29 @@ export default async function DashboardPage() {
                       前往審核
                     </Button>
                   </Link>
-                  <Link href={`/admin/payments/${s.id}`}>
-                    <Button type="button" variant="outline" size="sm">
-                      前往繳費
-                    </Button>
-                  </Link>
                 </div>
+
+                {activity.length > 0 && (
+                  <details className="group">
+                    <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-sm font-medium">
+                      📝 異動紀錄（{activity.length}）
+                      <span className="ml-1 inline-block transition-transform group-open:rotate-90">▶</span>
+                    </summary>
+                    <ul className="mt-2 grid gap-2">
+                      {activity.map((a, i) => (
+                        <li key={i} className="bg-card rounded-lg border p-2.5 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
+                            <span className="text-muted-foreground text-xs whitespace-nowrap">
+                              {new Date(a.created_at).toLocaleString("zh-TW")}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground mt-1">{a.summary}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </CardContent>
             </Card>
           );

@@ -276,13 +276,20 @@ export function ReviewTable({
         {
           id: "members",
           header: "成員",
-          accessorFn: (r) => r.memberNames.length,
+          accessorFn: (r) => r.memberNames.join(" "),
           cell: ({ row }) => (
-            <span>
-              {row.original.memberNames.join("、")}
-              <span className="text-muted-foreground ml-1">({row.original.memberNames.length} 人)</span>
-            </span>
+            <div className="grid">
+              {row.original.memberNames.map((name, i) => (
+                <span key={i}>{name}</span>
+              ))}
+            </div>
           ),
+        },
+        {
+          id: "member_count",
+          header: "人數",
+          accessorFn: (r) => r.memberNames.length,
+          cell: ({ row }) => row.original.memberNames.length,
         },
       ];
 

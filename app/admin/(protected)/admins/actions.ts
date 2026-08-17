@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/guards";
+import { getEmailAdapter } from "@/lib/email";
 
 export type ActionState = { error: string | null };
 
@@ -39,37 +40,62 @@ export async function createAdminUser(_prev: ActionState, formData: FormData): P
 
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl}/admin/accept-invite`,
-  });
+  const redirectTo = `${siteUrl}/admin/accept-invite`;
 
-  let userId = invited?.user?.id;
+  // generateLink() only ever produces a link — it never sends anything itself, unlike
+  // inviteUserByEmail() which relies on Supabase's own (rate-limited, easy-to-miss)
+  // built-in email sender and has no way to resend for an already-registered account.
+  // Sending the link ourselves through the app's own email adapter means one reliable
+  // delivery path for both first-time invites and re-invites of an existing admin.
+  const { data: existing } = await admin.auth.admin.listUsers();
+  const existingUser = existing?.users.find((u) => u.email === email);
 
-  if (inviteError) {
-    // Already-registered accounts (e.g. re-adding someone) aren't an error case here —
-    // look the existing auth user up instead of failing.
-    const { data: existing } = await admin.auth.admin.listUsers();
-    const match = existing?.users.find((u) => u.email === email);
-    if (!match) {
-      return { error: inviteError.message };
-    }
-    userId = match.id;
+  const { data: linkData, error: linkError } = existingUser
+    ? await admin.auth.admin.generateLink({ type: "magiclink", email, options: { redirectTo } })
+    : await admin.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: { redirectTo },
+      });
+
+  if (linkError || !linkData?.user) {
+    return { error: linkError?.message ?? "無法建立邀請連結" };
+  }
+  const userId = linkData.user.id;
+  const actionLink = linkData.properties.action_link;
+
+  const { error: upsertError } = await admin.from("admin_users").upsert(
+    {
+      id: userId,
+      email,
+      name: name || null,
+      role_id: roleId,
+      managed_session_ids: roleKey === "vendor" ? [] : managedSessionIds,
+    },
+    { onConflict: "id" }
+  );
+
+  if (upsertError) {
+    return { error: upsertError.message };
   }
 
-  if (!userId) {
-    return { error: "無法建立帳號" };
-  }
+  const adapter = getEmailAdapter();
+  const sendResult = await adapter.sendEmail({
+    to: email,
+    subject: "【報名系統後台】您已受邀加入管理團隊",
+    body: `您好，
 
-  const { error: insertError } = await admin.from("admin_users").insert({
-    id: userId,
-    email,
-    name: name || null,
-    role_id: roleId,
-    managed_session_ids: roleKey === "vendor" ? [] : managedSessionIds,
+您已被邀請加入報名系統後台，角色為「${roleKey}」。
+
+請點擊以下連結設定登入密碼並開始使用：
+${actionLink}
+
+請妥善保存此連結，勿轉發給他人。若非本人申請，請忽略此信。
+`,
   });
 
-  if (insertError) {
-    return { error: insertError.message };
+  if (sendResult.status !== "sent") {
+    return { error: `帳號已建立，但邀請信寄送失敗：${sendResult.errorMessage ?? "未知錯誤"}` };
   }
 
   revalidatePath("/admin/admins");

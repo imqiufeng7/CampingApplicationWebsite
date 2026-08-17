@@ -179,7 +179,7 @@ export function EditRegistrationForm({
               <FormItem>
                 <FormLabel>聯絡電話（必填）</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="0912-345678" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

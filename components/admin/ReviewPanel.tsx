@@ -32,16 +32,23 @@ export function ReviewPanel({
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <fieldset disabled={!editable} className="contents">
         <div className="grid gap-2">
-          <Label htmlFor="review_status">審核結果</Label>
+          <Label htmlFor="review_status">
+            審核結果（{registration.review_status}，系統依成員繳費狀態自動判定，僅可手動標記/取消退回補件）
+          </Label>
           <select
             id="review_status"
             name="review_status"
             defaultValue={registration.review_status}
             className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           >
-            <option value="審核中">審核中</option>
-            <option value="審核通過">審核通過</option>
-            <option value="退回補件">退回補件</option>
+            <option value={registration.review_status}>
+              {registration.review_status === "退回補件" ? "退回補件（維持）" : `${registration.review_status}（維持自動判定）`}
+            </option>
+            {registration.review_status === "退回補件" ? (
+              <option value="審核中">取消退回補件（改回等待審核）</option>
+            ) : (
+              <option value="退回補件">標記退回補件</option>
+            )}
           </select>
         </div>
         <div className="grid gap-2 sm:col-span-2">

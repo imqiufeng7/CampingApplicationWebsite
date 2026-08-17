@@ -22,8 +22,24 @@ function maskPhoneKeepLast3(phone: string): string {
   return "*".repeat(phone.length - 3) + phone.slice(-3);
 }
 
-function toCsv(headers: string[], rows: (string | number)[][]): string {
-  const escape = (v: string | number) => {
+// Excel auto-detects "number-ish" CSV cells and reformats them — a phone number
+// starting with 09 loses its leading zero and renders as scientific notation
+// (9.01E+08), and a slash-separated pair like "1/1" gets read as a date. Wrapping the
+// cell in ="..." forces Excel to evaluate it as a formula that always displays the
+// literal text, which is the standard workaround (plain apostrophe-prefix tricks only
+// work when typed by hand, not when the value arrives via CSV import).
+class ExcelText {
+  constructor(public value: string) {}
+}
+function excelText(v: string | number): ExcelText {
+  return new ExcelText(String(v ?? ""));
+}
+
+function toCsv(headers: string[], rows: (string | number | ExcelText)[][]): string {
+  const escape = (v: string | number | ExcelText) => {
+    if (v instanceof ExcelText) {
+      return `"=""${v.value.replace(/"/g, '""')}"""`;
+    }
     const s = String(v ?? "");
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
@@ -65,14 +81,14 @@ export function ExportMenu({
       formatRegistrationNo(r.registration_seq),
       new Date(r.submitted_at).toLocaleString("zh-TW"),
       r.contact_email,
-      r.contact_phone,
+      excelText(r.contact_phone),
       categoryLabel(r),
       r.memberNames.join("、"),
       r.memberNames.length,
       r.review_status,
       r.admission_status,
       r.group_zone ?? "",
-      r.group_number ?? "",
+      excelText(r.group_number ?? ""),
       r.payment_status,
       r.payment_amount,
       r.is_cancelled ? "是" : "否",
@@ -88,7 +104,7 @@ export function ExportMenu({
       formatRegistrationNo(r.registration_seq),
       r.memberNames[0] ?? "",
       r.payment_amount,
-      r.contact_phone,
+      excelText(r.contact_phone),
     ]);
     downloadCsv("收據開立用資料.csv", toCsv(headers, data));
   }
@@ -100,10 +116,10 @@ export function ExportMenu({
       categoryLabel(r),
       r.memberNames.join("、"),
       r.memberNames.length,
-      `${r.group_zone ?? ""} ${r.group_number ?? ""}`.trim(),
-      `${r.sleeping_bag_own_qty} / ${r.sleeping_bag_rent_qty}`,
+      excelText(`${r.group_zone ?? ""} ${r.group_number ?? ""}`.trim()),
+      excelText(`${r.sleeping_bag_own_qty} / ${r.sleeping_bag_rent_qty}`),
       r.payment_status === "已完成" || r.payment_status === "無需繳費" ? "是" : "否",
-      r.contact_phone,
+      excelText(r.contact_phone),
     ]);
     downloadCsv("報到使用資料.csv", toCsv(headers, data));
   }
@@ -116,7 +132,7 @@ export function ExportMenu({
         formatRegistrationNo(r.registration_seq),
         categoryLabel(r),
         r.memberNames.map(maskName).join("、"),
-        maskPhoneKeepLast3(r.contact_phone),
+        excelText(maskPhoneKeepLast3(r.contact_phone)),
       ]);
     downloadCsv("錄取名單.csv", toCsv(headers, data));
   }

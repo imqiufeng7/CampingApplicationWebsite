@@ -121,8 +121,8 @@ export function PaymentPanel({
         )}
       </fieldset>
 
-      <div className="sm:col-span-2">
-        {registration.ecpay_link ? (
+      <div className="sm:col-span-2 grid gap-1.5">
+        {registration.ecpay_link && (
           <p className="text-muted-foreground text-sm">
             綠界付款連結：
             <a
@@ -134,17 +134,29 @@ export function PaymentPanel({
               {registration.ecpay_link}
             </a>
           </p>
-        ) : editable ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={generating}
-            onClick={handleGenerateLink}
-          >
-            {generating ? "建立中..." : "建立線上付款連結"}
-          </Button>
-        ) : null}
+        )}
+        {editable && (
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={generating}
+              onClick={handleGenerateLink}
+            >
+              {generating
+                ? "建立中..."
+                : registration.ecpay_link
+                  ? "重新產生付款連結"
+                  : "建立線上付款連結"}
+            </Button>
+            {registration.ecpay_link && (
+              <p className="text-muted-foreground mt-1 text-xs">
+                若連結網址看起來不正確（例如網域不是正式網址），請點此重新產生。
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </form>
   );

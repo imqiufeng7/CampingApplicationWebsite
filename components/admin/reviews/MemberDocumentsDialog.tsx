@@ -84,7 +84,6 @@ function MemberFeeReviewForm({
         className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
       >
         <option value="審核中">審核中</option>
-        <option value="審核通過">審核通過</option>
         <option value="需繳費">需繳費</option>
         <option value="無需繳費">無需繳費</option>
       </select>

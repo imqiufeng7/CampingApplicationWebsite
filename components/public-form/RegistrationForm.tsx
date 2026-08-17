@@ -179,11 +179,14 @@ export function RegistrationForm({
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm">
-          <RichContent html={session.success_message_text || DEFAULT_SUCCESS_MESSAGE} />
+          <RichContent
+            className="text-center"
+            html={session.success_message_text || DEFAULT_SUCCESS_MESSAGE}
+          />
           <p className="bg-secondary text-secondary-foreground w-fit justify-self-center rounded-full px-4 py-1.5 font-medium">
             報名編號：{submitResult.registrationNo}
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-col items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -316,7 +319,7 @@ export function RegistrationForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="animate-fade-up mx-auto grid max-w-2xl gap-6"
+        className="animate-fade-up mx-auto grid max-w-2xl gap-6 pt-14 sm:pt-0"
       >
         {introContent}
 
@@ -352,7 +355,7 @@ export function RegistrationForm({
               <FormItem>
                 <FormLabel>聯絡電話（必填）</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="0912-345678" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
