@@ -19,8 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Supabase's invite/magic-link/recovery email lands here with the session encoded in
-// the URL (hash fragment for implicit flow, or ?code= for PKCE).
+// Supabase's invite/magic-link/recovery email lands here.
 //
 // This page must NEVER trust an already-existing browser session as "this is the
 // invited/recovering account" — if admin A is logged in and clicks a link meant for
@@ -30,6 +29,13 @@ import {
 // auth tokens; otherwise show "invalid" regardless of any ambient session. The
 // resulting account's email is also shown before the password form so a mismatch is
 // visually obvious rather than silent.
+//
+// We email our own URL carrying a raw ?token_hash=&type= (see admins/actions.ts),
+// never Supabase's action_link — that's a plain GET to auth/v1/verify, and mail
+// providers' link-scanners pre-fetch every link in an email to check it for malware,
+// silently consuming the one-time token before the human ever clicks. So verifyOtp
+// is only ever called from an explicit button click on this page, never
+// automatically on page load — a scanner fetching this URL doesn't click buttons.
 const passwordSchema = z
   .object({
     password: z.string().min(8, "密碼至少需要 8 個字元"),
@@ -42,13 +48,20 @@ const passwordSchema = z
 
 type PasswordValues = z.infer<typeof passwordSchema>;
 
-type Status = "checking" | "ready" | "invalid" | "done";
+type Status = "checking" | "confirm" | "ready" | "invalid" | "done";
 
-function urlCarriesAuthToken(): boolean {
+type TokenParams = { token_hash: string; type: string };
+
+// Legacy support only — older already-sent emails may still use Supabase's
+// action_link format (hash-fragment tokens or ?code=), which auto-establishes a
+// session via the client SDK's own detectSessionInUrl. New emails no longer use
+// this format (see the file-level comment), so this path can eventually be removed
+// once no old emails are in circulation.
+function legacyUrlCarriesAuthToken(): boolean {
   const hash = window.location.hash;
   if (hash.includes("access_token") || hash.includes("refresh_token")) return true;
   const params = new URLSearchParams(window.location.search);
-  return params.has("code") || params.has("token_hash");
+  return params.has("code");
 }
 
 export default function AcceptInvitePage() {
@@ -57,6 +70,8 @@ export default function AcceptInvitePage() {
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [tokenParams, setTokenParams] = useState<TokenParams | null>(null);
 
   const form = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
@@ -64,7 +79,17 @@ export default function AcceptInvitePage() {
   });
 
   useEffect(() => {
-    if (!urlCarriesAuthToken()) {
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && type) {
+      Promise.resolve().then(() => {
+        setTokenParams({ token_hash: tokenHash, type });
+        setStatus("confirm");
+      });
+      return;
+    }
+    if (!legacyUrlCarriesAuthToken()) {
       Promise.resolve().then(() => setStatus("invalid"));
       return;
     }
@@ -78,6 +103,22 @@ export default function AcceptInvitePage() {
       setStatus("ready");
     });
   }, []);
+
+  async function handleConfirm() {
+    if (!tokenParams) return;
+    setConfirming(true);
+    setError(null);
+    const supabase = createClient();
+    const { data, error: verifyError } = await supabase.auth.verifyOtp(tokenParams);
+    if (verifyError || !data.session) {
+      setStatus("invalid");
+      setConfirming(false);
+      return;
+    }
+    setAccountEmail(data.session.user.email ?? null);
+    setStatus("ready");
+    setConfirming(false);
+  }
 
   async function onSubmit(values: PasswordValues) {
     setSubmitting(true);
@@ -120,6 +161,27 @@ export default function AcceptInvitePage() {
               </a>
               ，忘記密碼可以在登入頁使用「忘記密碼」重設。
             </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (status === "confirm") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>確認邀請連結</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <p className="text-muted-foreground text-sm">
+              請點擊下方按鈕繼續設定您的登入密碼。
+            </p>
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            <Button onClick={handleConfirm} disabled={confirming} className="w-full">
+              {confirming ? "確認中..." : "繼續"}
+            </Button>
           </CardContent>
         </Card>
       </div>

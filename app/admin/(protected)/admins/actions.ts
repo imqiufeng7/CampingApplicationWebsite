@@ -50,6 +50,18 @@ async function sendAccountSetupLink(
     return { error: linkError?.message ?? "無法建立邀請連結" };
   }
 
+  // Email our own page URL carrying only the raw token_hash — never Supabase's
+  // action_link (a plain GET to auth/v1/verify). Mail providers' link-scanners
+  // (Gmail/Outlook safe-links, corporate security proxies) pre-fetch every link in
+  // an incoming email to check it for malware, and that GET silently consumes the
+  // one-time verify token — so by the time the human actually clicks, it's already
+  // "expired". Confirmed happening in production: two invited admins showed
+  // confirmed_at/last_sign_in_at stamped 14-18s after the invite was generated,
+  // long before they'd opened the email. Our own page (see accept-invite/page.tsx)
+  // requires an explicit button click before it calls verifyOtp — scanners fetch
+  // URLs, they don't click buttons.
+  const setupUrl = `${redirectTo}?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${linkData.properties.verification_type}`;
+
   const adapter = getEmailAdapter();
   const sendResult = await adapter.sendEmail({
     to: email,
@@ -59,7 +71,7 @@ async function sendAccountSetupLink(
 您已被邀請加入報名系統後台，角色為「${roleLabel}」。
 
 請點擊以下連結設定登入密碼並開始使用：
-${linkData.properties.action_link}
+${setupUrl}
 
 請妥善保存此連結，勿轉發給他人。若非本人申請，請忽略此信。
 `,

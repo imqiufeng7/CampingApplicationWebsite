@@ -34,7 +34,12 @@ export async function requestPasswordReset(email: string): Promise<ActionState> 
         options: { redirectTo },
       });
 
-      if (!linkError && linkData?.properties.action_link) {
+      if (!linkError && linkData?.properties.hashed_token) {
+        // See admins/actions.ts's sendAccountSetupLink comment: never email
+        // Supabase's action_link directly — mail-provider link-scanners silently
+        // consume its one-time token via prefetch. Our own page requires a real
+        // button click before calling verifyOtp.
+        const setupUrl = `${redirectTo}?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${linkData.properties.verification_type}`;
         const adapter = getEmailAdapter();
         await adapter.sendEmail({
           to: trimmed,
@@ -42,7 +47,7 @@ export async function requestPasswordReset(email: string): Promise<ActionState> 
           body: `您好，
 
 我們收到您在報名系統後台重設密碼的請求。請點擊以下連結設定新密碼：
-${linkData.properties.action_link}
+${setupUrl}
 
 請妥善保存此連結，勿轉發給他人。若非本人操作，請忽略此信，您的密碼不會被更動。
 `,
