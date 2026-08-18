@@ -1,5 +1,14 @@
-import type { AdmissionStatus, PaymentMethod } from "@/lib/db/types";
+import type { AdmissionStatus, EmailType, PaymentMethod } from "@/lib/db/types";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+
+// 正取/備取 get independently-editable templates (see
+// supabase/migrations/20260820110001_split_review_result_templates.sql) — this picks
+// which one applies. Only ever called for 正取/備取 rows in practice (send-results and
+// sendPaymentNotice both filter to those two statuses beforehand); anything else
+// falls back to the 正取 template rather than crashing.
+export function reviewResultEmailType(admissionStatus: AdmissionStatus): EmailType {
+  return admissionStatus === "備取" ? "審核結果-備取" : "審核結果-正取";
+}
 
 export interface ReviewResultMemberInfo {
   name: string;

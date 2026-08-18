@@ -19,6 +19,8 @@ export type FeeAppliesTo = "免付費" | "減免";
 export type AdminRole = string;
 export type EmailType =
   | "審核結果"
+  | "審核結果-正取"
+  | "審核結果-備取"
   | "付款通知"
   | "場次資訊"
   | "報到QR"

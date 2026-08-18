@@ -6,7 +6,9 @@ import type { EmailType } from "@/lib/db/types";
 
 const TYPE_LABELS: Record<EmailType, string> = {
   報名確認: "報名確認信（送出報名後立即寄出，含修改連結）",
-  審核結果: "審核結果/繳費通知（後台批次寄送）",
+  審核結果: "審核結果/繳費通知（舊版，不再使用）",
+  "審核結果-正取": "錄取通知/繳費通知（正取，後台批次寄送）",
+  "審核結果-備取": "備取通知（備取，後台批次寄送）",
   退回補件: "需補件通知（審核設為「退回補件」時寄出）",
   付款通知: "付款通知",
   場次資訊: "場次資訊",
@@ -16,7 +18,8 @@ const TYPE_LABELS: Record<EmailType, string> = {
 
 const PLACEHOLDERS: Partial<Record<EmailType, string[]>> = {
   報名確認: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "成員名單", "修改連結"],
-  審核結果: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+  "審核結果-正取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+  "審核結果-備取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   退回補件: ["活動名稱", "報名編號", "補件原因", "修改連結"],
 };
 
@@ -31,11 +34,17 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
     成員名單: "1. 王小明\n2. 陳小華",
     修改連結: "https://example.com/edit/abc123",
   },
-  審核結果: {
+  "審核結果-正取": {
     活動名稱: "2026年防災教育營",
     錄取結果: "您已錄取本次活動（正取）。",
     成員審核結果: "王小明：一般報名\n陳小華，符合低收入戶申請資格，無需繳交報名費",
     繳費資訊: "應繳金額：300 元\n請於期限內完成線上繳費：https://example.com/pay/abc123",
+  },
+  "審核結果-備取": {
+    活動名稱: "2026年防災教育營",
+    錄取結果: "您目前為備取名單，備取順位第 2 位，若有名額釋出將另行通知。",
+    成員審核結果: "王小明：一般報名\n陳小華，符合低收入戶申請資格，無需繳交報名費",
+    繳費資訊: "目前為備取名單，暫不需要繳費。如遞補錄取，將另行通知繳費方式與期限。",
   },
   退回補件: {
     活動名稱: "2026年防災教育營",
@@ -45,10 +54,12 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
   },
 };
 
-// Only these three types have send-triggering code today (see the email_templates
+// Only these types have send-triggering code today (see the email_templates
 // migration's comment) — the other EmailType values are reachable in email_logs but
-// have nothing yet that would use a template for them.
-const EDITABLE_TYPES: EmailType[] = ["報名確認", "審核結果", "退回補件"];
+// have nothing yet that would use a template for them. 審核結果 (the old single
+// template both statuses used to share) is intentionally excluded — 審核結果-正取/
+// -備取 replaced it (see 20260820110001_split_review_result_templates.sql).
+const EDITABLE_TYPES: EmailType[] = ["報名確認", "審核結果-正取", "審核結果-備取", "退回補件"];
 
 export default async function EmailTemplatesPage() {
   await requireRole("vendor");

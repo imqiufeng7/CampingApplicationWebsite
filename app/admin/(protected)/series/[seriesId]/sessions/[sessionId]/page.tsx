@@ -19,8 +19,13 @@ const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: strin
     placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "成員名單", "修改連結"],
   },
   {
-    type: "審核結果",
-    label: "審核結果/繳費通知（後台批次寄送）",
+    type: "審核結果-正取",
+    label: "錄取通知/繳費通知（正取，後台批次寄送）",
+    placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+  },
+  {
+    type: "審核結果-備取",
+    label: "備取通知（備取，後台批次寄送）",
     placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   },
   {

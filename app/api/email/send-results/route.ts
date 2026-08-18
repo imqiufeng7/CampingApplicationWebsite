@@ -6,6 +6,7 @@ import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate } from "@/lib/email/renderTemplate";
 import {
   buildReviewResultVars,
+  reviewResultEmailType,
   DEFAULT_REVIEW_RESULT_SUBJECT,
   DEFAULT_REVIEW_RESULT_BODY,
   MANUAL_TRANSFER_ACCOUNT_INFO,
@@ -70,10 +71,18 @@ export async function POST(request: Request) {
     (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
   );
 
-  const template = await getEmailTemplate(admin, "審核結果", sessionId, {
-    subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
-    bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
-  });
+  // 正取/備取 each have their own independently-editable template — fetch both once
+  // up front rather than per-registration inside the loop.
+  const [admittedTemplate, waitlistedTemplate] = await Promise.all([
+    getEmailTemplate(admin, "審核結果-正取", sessionId, {
+      subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
+      bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
+    }),
+    getEmailTemplate(admin, "審核結果-備取", sessionId, {
+      subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
+      bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
+    }),
+  ]);
 
   const adapter = getEmailAdapter();
   let sent = 0;
@@ -111,6 +120,8 @@ export async function POST(request: Request) {
       ecpayLink,
       manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
     });
+    const emailType = reviewResultEmailType(registration.admission_status);
+    const template = registration.admission_status === "備取" ? waitlistedTemplate : admittedTemplate;
     const subject = renderTemplate(template.subjectTemplate, vars);
     const emailBody = renderTemplate(template.bodyTemplate, vars);
 
@@ -122,7 +133,7 @@ export async function POST(request: Request) {
 
     await admin.from("email_logs").insert({
       registration_id: registration.id,
-      type: "審核結果",
+      type: emailType,
       status: result.status,
       sent_at: result.status === "sent" ? new Date().toISOString() : null,
       error_message: result.errorMessage ?? null,

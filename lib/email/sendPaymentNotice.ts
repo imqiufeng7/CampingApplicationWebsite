@@ -6,6 +6,7 @@ import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate } from "@/lib/email/renderTemplate";
 import {
   buildReviewResultVars,
+  reviewResultEmailType,
   DEFAULT_REVIEW_RESULT_SUBJECT,
   DEFAULT_REVIEW_RESULT_BODY,
   MANUAL_TRANSFER_ACCOUNT_INFO,
@@ -77,7 +78,8 @@ export async function sendPaymentNoticeEmail(
     manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
   });
 
-  const template = await getEmailTemplate(admin, "審核結果", registration.session_id, {
+  const emailType = reviewResultEmailType(registration.admission_status);
+  const template = await getEmailTemplate(admin, emailType, registration.session_id, {
     subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
     bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
   });
@@ -89,7 +91,7 @@ export async function sendPaymentNoticeEmail(
 
   await admin.from("email_logs").insert({
     registration_id: registrationId,
-    type: "審核結果",
+    type: emailType,
     status: result.status,
     sent_at: result.status === "sent" ? new Date().toISOString() : null,
     error_message: result.errorMessage ?? null,
