@@ -8,28 +8,7 @@ import { SeriesEditForm } from "@/components/admin/SeriesEditForm";
 import { SessionForm } from "@/components/admin/SessionForm";
 import { CloneSessionForm } from "@/components/admin/CloneSessionForm";
 import { DeleteSessionButton } from "@/components/admin/DeleteSessionButton";
-
-// Derived from status + dates rather than the raw draft/open/closed/archived enum —
-// what the vendor actually wants to know at a glance is whether people can still
-// register, whether the event itself is happening right now, or whether it's over.
-function deriveStatusLabel(
-  status: string,
-  dateStart: string | null,
-  dateEnd: string | null
-): { label: string; variant: "default" | "secondary" } {
-  if (status === "draft") return { label: "草稿", variant: "secondary" };
-  if (status === "open") return { label: "報名中", variant: "default" };
-  const now = Date.now();
-  if (dateEnd && now > new Date(dateEnd).getTime()) return { label: "已完成", variant: "secondary" };
-  if (dateStart && now >= new Date(dateStart).getTime()) return { label: "進行中", variant: "default" };
-  return { label: "已截止報名", variant: "secondary" };
-}
-
-function formatDateRange(start: string | null, end: string | null): string {
-  if (!start) return "尚未設定活動時間";
-  const fmt = (s: string) => new Date(s).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  return end ? `${fmt(start)} - ${fmt(end)}` : fmt(start);
-}
+import { deriveStatusLabel, formatDateRange, computeSessionStats } from "@/lib/sessionStats";
 
 export default async function SeriesDetailPage({
   params,
@@ -64,43 +43,7 @@ export default async function SeriesDetailPage({
   ]);
 
   const sessionIds = (sessions ?? []).map((s) => s.id);
-  const { data: registrations } = sessionIds.length
-    ? await supabase
-        .from("registrations")
-        .select("id, session_id, admission_status, is_cancelled")
-        .in("session_id", sessionIds)
-    : { data: [] };
-
-  const registrationIds = (registrations ?? []).map((r) => r.id);
-  const { data: members } = registrationIds.length
-    ? await supabase.from("registration_members").select("registration_id").in("registration_id", registrationIds)
-    : { data: [] };
-  const memberCountByRegistration = new Map<string, number>();
-  for (const m of members ?? []) {
-    memberCountByRegistration.set(m.registration_id, (memberCountByRegistration.get(m.registration_id) ?? 0) + 1);
-  }
-
-  const statsBySession = new Map<
-    string,
-    { registeredGroups: number; admittedGroups: number; registeredPeople: number; admittedPeople: number }
-  >();
-  for (const r of registrations ?? []) {
-    if (r.is_cancelled) continue;
-    const stat = statsBySession.get(r.session_id) ?? {
-      registeredGroups: 0,
-      admittedGroups: 0,
-      registeredPeople: 0,
-      admittedPeople: 0,
-    };
-    const peopleCount = memberCountByRegistration.get(r.id) ?? 0;
-    stat.registeredGroups += 1;
-    stat.registeredPeople += peopleCount;
-    if (r.admission_status === "正取") {
-      stat.admittedGroups += 1;
-      stat.admittedPeople += peopleCount;
-    }
-    statsBySession.set(r.session_id, stat);
-  }
+  const statsBySession = await computeSessionStats(supabase, sessionIds);
 
   const seriesNameMap = new Map((allSeries ?? []).map((s) => [s.id, s.name]));
   const cloneCandidates = (allSessions ?? []).map((s) => ({

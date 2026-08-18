@@ -305,21 +305,20 @@ export function RegistrationForm({
   if (hasCategories && !selectedCategoryId) {
     return (
       <div className="animate-fade-up mx-auto grid max-w-2xl gap-7">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          onClick={() => setAgreedToTerms(false)}
-        >
-          ← 上一步
-        </Button>
         {introContent}
         <RegistrationCategoryPicker
           categories={registrationCategories}
           value={selectedCategoryId}
           onChange={setSelectedCategoryId}
         />
+        <Button
+          type="button"
+          variant="outline"
+          className="w-fit rounded-full"
+          onClick={() => setAgreedToTerms(false)}
+        >
+          ← 上一步
+        </Button>
       </div>
     );
   }
@@ -328,17 +327,8 @@ export function RegistrationForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="animate-fade-up mx-auto grid max-w-2xl gap-7 pt-14 sm:pt-0"
+        className="animate-fade-up mx-auto grid max-w-2xl gap-7"
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          onClick={() => (hasCategories ? setSelectedCategoryId("") : setAgreedToTerms(false))}
-        >
-          ← 上一步
-        </Button>
         {introContent}
 
         <ProgressDots
@@ -430,6 +420,14 @@ export function RegistrationForm({
           className="rounded-full text-base font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
         >
           {form.formState.isSubmitting ? "送出中..." : "🏕️ 送出報名"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-fit rounded-full"
+          onClick={() => (hasCategories ? setSelectedCategoryId("") : setAgreedToTerms(false))}
+        >
+          ← 上一步
         </Button>
       </form>
     </Form>

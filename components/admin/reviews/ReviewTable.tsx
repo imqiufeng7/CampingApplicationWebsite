@@ -583,24 +583,34 @@ export function ReviewTable({
 
   return (
     <div className="grid gap-3">
-      <div className="bg-muted/40 grid grid-cols-2 gap-2 rounded-xl border p-3 sm:grid-cols-4">
-        <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
-        <StatPair
-          primary={
-            registrationCategoryMap.size > 0
-              ? { label: "各類別錄取人數", breakdown: summary.admittedByCategory }
-              : { label: "已錄取", value: summary.admittedTotal }
-          }
-          secondary={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }}
-        />
-        <StatPair
-          primary={{ label: "已繳費", value: summary.paidCount }}
-          secondary={{ label: "收費總額", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
-        />
-        <StatPair
-          primary={{ label: "已取消", value: summary.cancelledCount }}
-          secondary={{ label: "睡墊情況（自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
-        />
+      <div className="bg-muted/40 grid gap-2 rounded-xl border p-2.5">
+        {registrationCategoryMap.size > 0 && (
+          <div className="border-b pb-2">
+            <p className="text-muted-foreground mb-1 text-xs">各類別錄取人數</p>
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              {summary.admittedByCategory.map(([k, v]) => (
+                <span key={k} className="text-sm font-medium">
+                  {k} <span className="text-base font-semibold">{v}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
+          <StatPair
+            primary={{ label: "已錄取", value: summary.admittedTotal }}
+            secondary={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }}
+          />
+          <StatPair
+            primary={{ label: "已繳費", value: summary.paidCount }}
+            secondary={{ label: "收費總額", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
+          />
+          <StatPair
+            primary={{ label: "已取消", value: summary.cancelledCount }}
+            secondary={{ label: "睡墊情況（自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -741,9 +751,9 @@ type StatValue =
 
 function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatValue }) {
   return (
-    <div className="bg-card rounded-lg border p-2.5">
+    <div className="bg-card rounded-lg border p-2">
       <StatLine stat={primary} size="lg" />
-      <div className="my-1.5 border-t" />
+      <div className="my-1 border-t" />
       <StatLine stat={secondary} size="sm" />
     </div>
   );
@@ -777,7 +787,7 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
   return (
     <div>
       <p className="text-muted-foreground mb-0.5 text-xs">{stat.label}</p>
-      <p className={size === "lg" ? "text-xl font-bold" : "text-sm font-medium"}>{stat.value}</p>
+      <p className={size === "lg" ? "text-lg font-bold" : "text-sm font-medium"}>{stat.value}</p>
     </div>
   );
 }

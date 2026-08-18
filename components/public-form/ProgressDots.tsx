@@ -1,17 +1,17 @@
 import { cn } from "@/lib/utils";
 
-// Fixed positioning so progress stays visible while scrolling a long form: a sticky
-// header bar on mobile (where floating in a corner would cover form fields), a
-// floating card in the bottom-left corner on desktop (out of the way of the form
-// itself). Removed from normal document flow either way — RegistrationForm adds
-// top padding on mobile to keep this from covering the first section.
+// position: sticky (not fixed) — stays in normal document flow at first, so it never
+// covers the intro content above it, then pins to the top of the viewport once
+// scrolling would carry it past that point, same behavior on mobile and desktop. A
+// top-to-bottom fade from the accent color to transparent keeps it legible even when
+// it ends up overlapping whatever scrolls underneath.
 export function ProgressDots({ sections }: { sections: { label: string; done: boolean }[] }) {
   const doneCount = sections.filter((s) => s.done).length;
   return (
     <div
       className={cn(
-        "bg-card ring-foreground/10 fixed inset-x-0 top-0 z-40 grid gap-2 rounded-none px-3 py-2.5 text-xs shadow-md ring-1",
-        "sm:inset-x-auto sm:bottom-4 sm:left-4 sm:top-auto sm:w-72 sm:rounded-xl sm:shadow-lg"
+        "sticky top-0 z-40 -mx-4 grid gap-2 px-4 py-2.5 text-xs sm:mx-0 sm:rounded-xl sm:px-3",
+        "bg-linear-to-b from-accent/70 via-accent/30 to-transparent backdrop-blur-sm"
       )}
     >
       <div className="bg-muted h-1.5 overflow-hidden rounded-full">
@@ -20,7 +20,7 @@ export function ProgressDots({ sections }: { sections: { label: string; done: bo
           style={{ width: `${(doneCount / sections.length) * 100}%` }}
         />
       </div>
-      <div className="flex items-center gap-3 overflow-x-auto sm:flex-wrap sm:overflow-visible">
+      <div className="flex items-center gap-3 overflow-x-auto">
         {sections.map((s, i) => (
           <div key={i} className="flex shrink-0 items-center gap-1.5">
             <span
