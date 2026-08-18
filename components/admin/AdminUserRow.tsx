@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { toast } from "sonner";
 import {
   updateAdminUser,
   deleteAdminUser,
+  resendInvite,
   type ActionState,
 } from "@/app/admin/(protected)/admins/actions";
 import { Button } from "@/components/ui/button";
@@ -28,8 +30,23 @@ export function AdminUserRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [roleId, setRoleId] = useState(adminUser.role_id);
+  const [resending, setResending] = useState(false);
   const action = updateAdminUser.bind(null, adminUser.id);
   const [state, formAction] = useActionState(action, initialState);
+
+  async function handleResendInvite() {
+    setResending(true);
+    try {
+      const result = await resendInvite(adminUser.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已重新寄送邀請信");
+    } finally {
+      setResending(false);
+    }
+  }
 
   const roleLabel = roles.find((r) => r.id === adminUser.role_id)?.label ?? "未知角色";
   const isVendorRole = roles.find((r) => r.id === roleId)?.key === "vendor";
@@ -51,6 +68,9 @@ export function AdminUserRow({
           )}
         </div>
         <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={resending} onClick={handleResendInvite}>
+            {resending ? "寄送中..." : "重新寄送邀請信"}
+          </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
             編輯
           </Button>

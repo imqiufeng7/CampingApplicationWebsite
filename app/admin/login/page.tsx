@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/client";
+import { requestPasswordReset } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,71 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(email);
+      setSent(true);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>請查收信箱</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <p className="text-muted-foreground text-sm">
+            若 {email} 是有效的管理員帳號，我們已經寄出重設密碼的連結，請至信箱查收（含垃圾郵件匣）。
+          </p>
+          <Button type="button" variant="outline" onClick={onBack}>
+            返回登入
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>忘記密碼</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="reset-email" className="text-sm font-medium">
+              Email
+            </label>
+            <Input
+              id="reset-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={submitting} className="w-full">
+            {submitting ? "寄送中..." : "寄送重設密碼連結"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onBack}>
+            返回登入
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 const loginSchema = z.object({
   email: z.string().email("請輸入有效的 Email"),
@@ -31,6 +97,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -53,6 +120,10 @@ function LoginForm() {
     const redirectTo = searchParams.get("redirectTo") ?? "/admin";
     router.replace(redirectTo);
     router.refresh();
+  }
+
+  if (showForgotPassword) {
+    return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;
   }
 
   return (
@@ -92,6 +163,15 @@ function LoginForm() {
             {error && <p className="text-destructive text-sm">{error}</p>}
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? "登入中..." : "登入"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => setShowForgotPassword(true)}
+            >
+              忘記密碼？
             </Button>
           </form>
         </Form>

@@ -19,10 +19,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Supabase's invite/magic-link email lands here with the session encoded in the URL
-// (hash fragment for implicit flow, or ?code= for PKCE) — createClient()'s browser
-// client auto-detects and exchanges it for a cookie session on mount, same mechanism
-// the login page relies on after a normal password sign-in.
+// Supabase's invite/magic-link/recovery email lands here with the session encoded in
+// the URL (hash fragment for implicit flow, or ?code= for PKCE).
+//
+// This page must NEVER trust an already-existing browser session as "this is the
+// invited/recovering account" — if admin A is logged in and clicks a link meant for
+// B, a plain getSession() would silently return A's session (nothing in the URL ever
+// gets checked), and "設定密碼" would overwrite A's own password instead of setting
+// up B's. So: only treat the page as valid if the URL itself actually carries fresh
+// auth tokens; otherwise show "invalid" regardless of any ambient session. The
+// resulting account's email is also shown before the password form so a mismatch is
+// visually obvious rather than silent.
 const passwordSchema = z
   .object({
     password: z.string().min(8, "密碼至少需要 8 個字元"),
@@ -37,9 +44,17 @@ type PasswordValues = z.infer<typeof passwordSchema>;
 
 type Status = "checking" | "ready" | "invalid" | "done";
 
+function urlCarriesAuthToken(): boolean {
+  const hash = window.location.hash;
+  if (hash.includes("access_token") || hash.includes("refresh_token")) return true;
+  const params = new URLSearchParams(window.location.search);
+  return params.has("code") || params.has("token_hash");
+}
+
 export default function AcceptInvitePage() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("checking");
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,9 +64,18 @@ export default function AcceptInvitePage() {
   });
 
   useEffect(() => {
+    if (!urlCarriesAuthToken()) {
+      Promise.resolve().then(() => setStatus("invalid"));
+      return;
+    }
     const supabase = createClient();
     supabase.auth.getSession().then(({ data }) => {
-      setStatus(data.session ? "ready" : "invalid");
+      if (!data.session) {
+        setStatus("invalid");
+        return;
+      }
+      setAccountEmail(data.session.user.email ?? null);
+      setStatus("ready");
     });
   }, []);
 
@@ -94,7 +118,7 @@ export default function AcceptInvitePage() {
               <a href="/admin/login" className="text-primary underline">
                 登入
               </a>
-              。
+              ，忘記密碼可以在登入頁使用「忘記密碼」重設。
             </p>
           </CardContent>
         </Card>
@@ -109,6 +133,13 @@ export default function AcceptInvitePage() {
           <CardTitle>設定您的登入密碼</CardTitle>
         </CardHeader>
         <CardContent>
+          {accountEmail && (
+            <p className="bg-secondary text-secondary-foreground mb-4 rounded-lg px-3 py-2 text-sm">
+              正在設定帳號：<span className="font-medium">{accountEmail}</span>
+              <br />
+              請確認這是您本人的信箱，若不是請勿繼續設定。
+            </p>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField

@@ -59,8 +59,16 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
 
   const memberLines = input.members.map(describeMember).join("\n");
 
-  let paymentLines = "無需繳費。";
-  if (input.paymentAmount > 0) {
+  // 備取/取消 never get payment details — 正取 is confirmed and payment_amount is
+  // meaningful right now; a waitlisted registrant's amount is only a projection for
+  // if/when they get admitted later, and showing a real payment link before that
+  // would prompt them to pay for a spot they don't have yet.
+  let paymentLines: string;
+  if (input.admissionStatus === "備取") {
+    paymentLines = "目前為備取名單，暫不需要繳費。如遞補錄取，將另行通知繳費方式與期限。";
+  } else if (input.admissionStatus === "取消") {
+    paymentLines = "本次未錄取，無需繳費。";
+  } else if (input.paymentAmount > 0) {
     if (input.paymentMethod === "online" && input.ecpayLink) {
       paymentLines = `應繳金額：${input.paymentAmount} 元\n請於期限內完成線上繳費：${input.ecpayLink}`;
     } else if (input.paymentMethod === "manual") {
@@ -68,6 +76,8 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     } else {
       paymentLines = `應繳金額：${input.paymentAmount} 元，繳費方式將另行通知。`;
     }
+  } else {
+    paymentLines = "無需繳費。";
   }
 
   return {
