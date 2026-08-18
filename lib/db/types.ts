@@ -211,7 +211,6 @@ export interface Database {
           refund_status: RefundStatus | null;
           duplicate_flag: boolean;
           duplicate_note: string | null;
-          resubmission_reason: string | null;
           checkin_at: string | null;
           checkin_by: string | null;
           qr_token: string;
@@ -225,7 +224,9 @@ export interface Database {
         Update: Partial<
           Pick<
             Database["public"]["Tables"]["registrations"]["Row"],
-            | "review_status"
+            // review_status is intentionally excluded — it's system-computed from
+            // registration_members' fee_review_result/needs_resubmission now (see
+            // fn_recompute_registration_review_status), never written directly.
             | "admission_status"
             | "waitlist_rank"
             | "payment_status"
@@ -248,7 +249,6 @@ export interface Database {
             | "refund_status"
             | "duplicate_flag"
             | "duplicate_note"
-            | "resubmission_reason"
             | "admin_note"
           >
         >;
@@ -270,6 +270,8 @@ export interface Database {
           org_other_text: string | null;
           fee_category_id: string | null;
           fee_review_result: FeeReviewResult;
+          needs_resubmission: boolean;
+          resubmission_note: string | null;
           ocr_extracted_text: Record<string, unknown> | null;
           created_at: string;
         };
@@ -277,7 +279,13 @@ export interface Database {
         Update: Partial<
           Pick<
             Database["public"]["Tables"]["registration_members"]["Row"],
-            "identity_type_id" | "org_selected" | "org_other_text" | "fee_category_id" | "fee_review_result"
+            | "identity_type_id"
+            | "org_selected"
+            | "org_other_text"
+            | "fee_category_id"
+            | "fee_review_result"
+            | "needs_resubmission"
+            | "resubmission_note"
           >
         >;
         Relationships: [];

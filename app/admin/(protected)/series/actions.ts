@@ -174,14 +174,26 @@ export async function cloneSession(
       series_id: targetSeriesId,
       name: `${source.name}（複製）`,
       location: source.location,
+      date_start: source.date_start,
+      date_end: source.date_end,
+      registration_open_at: source.registration_open_at,
+      registration_close_at: source.registration_close_at,
+      result_announce_at: source.result_announce_at,
+      cancel_deadline_at: source.cancel_deadline_at,
       capacity_total: source.capacity_total,
       admission_quota: source.admission_quota,
       fee_base: source.fee_base,
       fee_discount_per_person: source.fee_discount_per_person,
       max_members_per_registration: source.max_members_per_registration,
       managing_org: source.managing_org,
+      // Every other field is copied verbatim per the vendor's request ("完整複製，我
+      // 再依據需要調整") — status is the one deliberate exception, so a clone never
+      // goes live/open the moment it's created.
       status: "draft",
       banner_image_path: source.banner_image_path,
+      theme_color: source.theme_color,
+      consent_gate_text: source.consent_gate_text,
+      intro_content: source.intro_content,
       schedule_content: source.schedule_content,
       registration_process_content: source.registration_process_content,
       fee_waiver_content: source.fee_waiver_content,
@@ -569,4 +581,22 @@ export async function deleteSessionEmailTemplate(
   if (error) return { error: error.message };
   revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
   return { error: null };
+}
+
+// registrations.session_id is ON DELETE RESTRICT (see init_schema.sql) — a session
+// with any registrations, even cancelled ones, can't be deleted this way, matching
+// the same "can't delete what real data depends on" rule already used for fee/
+// registration categories and admin roles.
+export async function deleteSession(seriesId: string, sessionId: string): Promise<void> {
+  await requireRole("vendor");
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_sessions").delete().eq("id", sessionId);
+  if (error) {
+    throw new Error(
+      error.code === "23503"
+        ? "此場次已有報名資料，無法刪除"
+        : error.message
+    );
+  }
+  revalidatePath(`/admin/series/${seriesId}`);
 }

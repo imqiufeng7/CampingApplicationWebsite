@@ -30,35 +30,14 @@ export function ReviewPanel({
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-2 sm:col-span-2">
+        <Label>審核結果</Label>
+        <p className="text-muted-foreground text-sm">
+          {registration.review_status}
+          （系統依各成員的免付費審核結果自動判定；需要標記退回補件請至「證明文件」彈窗，逐位成員填寫原因）
+        </p>
+      </div>
       <fieldset disabled={!editable} className="contents">
-        <div className="grid gap-2">
-          <Label htmlFor="review_status">
-            審核結果（{registration.review_status}，系統依成員繳費狀態自動判定，僅可手動標記/取消退回補件）
-          </Label>
-          <select
-            id="review_status"
-            name="review_status"
-            defaultValue={registration.review_status}
-            className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
-          >
-            <option value={registration.review_status}>
-              {registration.review_status === "退回補件" ? "退回補件（維持）" : `${registration.review_status}（維持自動判定）`}
-            </option>
-            {registration.review_status === "退回補件" ? (
-              <option value="審核中">取消退回補件（改回等待審核）</option>
-            ) : (
-              <option value="退回補件">標記退回補件</option>
-            )}
-          </select>
-        </div>
-        <div className="grid gap-2 sm:col-span-2">
-          <Label htmlFor="resubmission_reason">需補件原因（設為「退回補件」時填寫，儲存後會自動 email 通知報名者）</Label>
-          <Textarea
-            id="resubmission_reason"
-            name="resubmission_reason"
-            defaultValue={registration.resubmission_reason ?? ""}
-          />
-        </div>
         <div className="grid gap-2">
           <Label htmlFor="admission_status">錄取結果</Label>
           <select

@@ -1,14 +1,14 @@
 export interface ResubmissionRequestEmailInput {
   sessionName: string;
   registrationNo: string;
-  reason: string;
+  memberIssues: { name: string; note: string }[];
   editUrl: string;
 }
 
 // Fallback only — matches the row seeded by the email_templates migration, used if
 // that row was somehow deleted (getEmailTemplate's last resort).
 export const DEFAULT_RESUBMISSION_REQUEST_SUBJECT = "【{{活動名稱}}】報名資料需要補件";
-export const DEFAULT_RESUBMISSION_REQUEST_BODY = `您好，您的報名資料經審核後，尚有部分項目需要補正：
+export const DEFAULT_RESUBMISSION_REQUEST_BODY = `您好，您的報名資料經審核後，以下成員尚有部分項目需要補正：
 
 活動場次：{{活動名稱}}
 報名編號：{{報名編號}}
@@ -28,7 +28,7 @@ export function buildResubmissionRequestVars(
   return {
     活動名稱: input.sessionName,
     報名編號: input.registrationNo,
-    補件原因: input.reason,
+    補件原因: input.memberIssues.map((m) => `${m.name}：${m.note}`).join("\n"),
     修改連結: input.editUrl,
   };
 }

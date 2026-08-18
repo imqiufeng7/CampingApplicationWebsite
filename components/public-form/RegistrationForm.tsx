@@ -305,6 +305,15 @@ export function RegistrationForm({
   if (hasCategories && !selectedCategoryId) {
     return (
       <div className="animate-fade-up mx-auto grid max-w-2xl gap-7">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={() => setAgreedToTerms(false)}
+        >
+          ← 上一步
+        </Button>
         {introContent}
         <RegistrationCategoryPicker
           categories={registrationCategories}
@@ -321,6 +330,15 @@ export function RegistrationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="animate-fade-up mx-auto grid max-w-2xl gap-7 pt-14 sm:pt-0"
       >
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={() => (hasCategories ? setSelectedCategoryId("") : setAgreedToTerms(false))}
+        >
+          ← 上一步
+        </Button>
         {introContent}
 
         <ProgressDots

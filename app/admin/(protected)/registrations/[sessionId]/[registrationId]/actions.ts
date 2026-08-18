@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin, requireFieldEditable, requireSessionAccess } from "@/lib/auth/guards";
+import { requireAdmin, requireFieldEditable, requireRole, requireSessionAccess } from "@/lib/auth/guards";
 import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
 
 export type ActionState = { error: string | null };
@@ -42,11 +42,13 @@ export async function updateRegistrationReview(
   const raw = formToObject(formData);
   const isCancelled = raw.is_cancelled === "on" || raw.is_cancelled === "true";
 
+  // review_status is not writable here — it's computed from each member's
+  // fee_review_result/needs_resubmission (see fn_recompute_registration_review_status),
+  // set from the document dialog's per-member controls instead of this bulk form.
   const supabase = await createClient();
   const { error } = await supabase
     .from("registrations")
     .update({
-      review_status: raw.review_status as never,
       admission_status: raw.admission_status as never,
       waitlist_rank: num(raw.waitlist_rank),
       group_zone: str(raw.group_zone),
@@ -59,24 +61,12 @@ export async function updateRegistrationReview(
       cancel_reason: isCancelled ? str(raw.cancel_reason) : null,
       refund_amount: num(raw.refund_amount),
       refund_status: str(raw.refund_status) as never,
-      resubmission_reason: str(raw.resubmission_reason),
       admin_note: str(raw.admin_note),
     })
     .eq("id", registrationId);
 
   if (error) {
     return { error: error.message };
-  }
-
-  // Saving with 退回補件 selected always (re)sends the notice — lets a reviewer
-  // correct the reason text and resend, matching the review-table cell's behavior.
-  if (raw.review_status === "退回補件") {
-    const adminClient = createAdminClient();
-    const sendResult = await sendResubmissionRequestEmail(adminClient, registrationId);
-    if (!sendResult.ok) {
-      revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
-      return { error: `已儲存，但補件通知寄送失敗：${sendResult.error}` };
-    }
   }
 
   revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
@@ -148,5 +138,78 @@ export async function updateMemberFeeReview(
   }
 
   revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Per-member 退回補件 — host_org (and vendor). Marking/clearing lives in the document
+// dialog (each member's documents are reviewed independently); sending the notice is
+// a separate explicit step so a reviewer can flag several members before one email
+// goes out covering all of them.
+// ---------------------------------------------------------------------------
+export async function updateMemberResubmission(
+  sessionId: string,
+  registrationId: string,
+  memberId: string,
+  needsResubmission: boolean,
+  note: string
+): Promise<ActionState> {
+  const admin = await requireAdmin();
+  await requireFieldEditable(admin, "免付費審核結果");
+  await requireSessionAccess(sessionId);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("registration_members")
+    .update({
+      needs_resubmission: needsResubmission,
+      resubmission_note: needsResubmission ? (note.trim() || null) : null,
+    })
+    .eq("id", memberId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+  revalidatePath(`/admin/reviews/${sessionId}`);
+  return { error: null };
+}
+
+export async function sendResubmissionNotice(
+  sessionId: string,
+  registrationId: string
+): Promise<ActionState> {
+  const admin = await requireAdmin();
+  await requireFieldEditable(admin, "免付費審核結果");
+  await requireSessionAccess(sessionId);
+
+  const adminClient = createAdminClient();
+  const result = await sendResubmissionRequestEmail(adminClient, registrationId);
+  if (!result.ok) {
+    return { error: result.error ?? "寄送失敗" };
+  }
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Delete — vendor only. This is a permanent hard delete (registration_members and
+// registration_files cascade via their FKs), unlike is_cancelled which is a
+// reversible flag any host_org with 取消退費資訊 access can set. Deliberately not
+// exposed to other roles since there's no undo.
+// ---------------------------------------------------------------------------
+export async function deleteRegistration(sessionId: string, registrationId: string): Promise<ActionState> {
+  await requireRole("vendor");
+  await requireSessionAccess(sessionId);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("registrations").delete().eq("id", registrationId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/reviews/${sessionId}`);
+  revalidatePath(`/admin/payments/${sessionId}`);
   return { error: null };
 }

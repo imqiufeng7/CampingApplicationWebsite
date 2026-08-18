@@ -11,27 +11,38 @@ import {
 } from "@/lib/email/templates/resubmissionRequest";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 
-// Shared by the admin-facing send-resubmission-request route (ReviewTable's inline
-// cell) and updateRegistrationReview (the detail-page form) — both need the same
-// "mark 退回補件, notify the registrant with their existing edit link" behavior.
-// Takes a service-role client since it needs to read across the full registration
-// (not just what the caller's own field permissions expose) and write email_logs,
-// same reason send-confirmation/send-results use createAdminClient().
+// Composes the notice from whichever members are currently flagged
+// needs_resubmission=true (each with their own reviewer-written note) — different
+// people in the same registration can have different document problems, so this is
+// no longer a single registration-level reason. Called by the sendResubmissionNotice
+// server action, which the document dialog's "寄送補件通知" button invokes directly.
 export async function sendResubmissionRequestEmail(
   admin: SupabaseClient<Database>,
   registrationId: string
 ): Promise<{ ok: boolean; error?: string }> {
   const { data: registration } = await admin
     .from("registrations")
-    .select("id, session_id, contact_email, registration_seq, edit_token, resubmission_reason")
+    .select("id, session_id, contact_email, registration_seq, edit_token")
     .eq("id", registrationId)
     .maybeSingle();
 
   if (!registration) {
     return { ok: false, error: "找不到報名資料" };
   }
-  if (!registration.resubmission_reason) {
-    return { ok: false, error: "請先填寫需補件原因，才能寄送通知" };
+
+  const { data: flaggedMembers } = await admin
+    .from("registration_members")
+    .select("name, resubmission_note")
+    .eq("registration_id", registrationId)
+    .eq("needs_resubmission", true)
+    .order("member_order", { ascending: true });
+
+  const memberIssues = (flaggedMembers ?? [])
+    .filter((m) => m.resubmission_note)
+    .map((m) => ({ name: m.name, note: m.resubmission_note as string }));
+
+  if (memberIssues.length === 0) {
+    return { ok: false, error: "目前沒有成員被標記需補件，或尚未填寫補件原因" };
   }
 
   const { data: session } = await admin
@@ -44,7 +55,7 @@ export async function sendResubmissionRequestEmail(
   const vars = buildResubmissionRequestVars({
     sessionName: session?.name ?? "",
     registrationNo: formatRegistrationNo(registration.registration_seq),
-    reason: registration.resubmission_reason,
+    memberIssues,
     editUrl: `${siteUrl}/edit/${registration.edit_token}`,
   });
 

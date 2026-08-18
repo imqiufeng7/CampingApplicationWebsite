@@ -39,6 +39,7 @@ import {
 import { ReviewStatusCell } from "@/components/admin/reviews/ReviewStatusCell";
 import { MemberDocumentsDialog } from "@/components/admin/reviews/MemberDocumentsDialog";
 import { ExportMenu } from "@/components/admin/reviews/ExportMenu";
+import { DeleteRegistrationButton } from "@/components/admin/reviews/DeleteRegistrationButton";
 import { updateRegistrationField, type RegistrationEditableField } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,8 @@ export type ReviewRowMember = {
   org_other_text: string | null;
   fee_category_id: string | null;
   fee_review_result: string;
+  needs_resubmission: boolean;
+  resubmission_note: string | null;
   birth_year_roc: number | null;
   birth_month: number | null;
   birth_day: number | null;
@@ -77,8 +80,8 @@ export type ReviewRow = {
   admin_note: string | null;
   is_cancelled: boolean;
   cancel_reason: string | null;
-  resubmission_reason: string | null;
   duplicate_flag: boolean;
+  duplicateMatches: { otherSeq: number | null; otherSessionName: string | null; memberName: string }[];
   registration_category_id: string | null;
   memberNames: string[];
   members: ReviewRowMember[];
@@ -110,10 +113,28 @@ const ZONE_COLORS = [
   "border-cyan-400",
   "border-orange-400",
 ];
-function zoneColor(zone: string): string {
+function zoneHash(zone: string): number {
   let hash = 0;
   for (let i = 0; i < zone.length; i++) hash = (hash * 31 + zone.charCodeAt(i)) >>> 0;
-  return ZONE_COLORS[hash % ZONE_COLORS.length];
+  return hash;
+}
+function zoneColor(zone: string): string {
+  return ZONE_COLORS[zoneHash(zone) % ZONE_COLORS.length];
+}
+
+// Same hue order as ZONE_COLORS (index-aligned) but as text color, for labeling the
+// zone letter itself in the summary stat block rather than a cell's left border.
+const ZONE_TEXT_COLORS = [
+  "text-blue-600 dark:text-blue-400",
+  "text-green-600 dark:text-green-400",
+  "text-amber-600 dark:text-amber-400",
+  "text-purple-600 dark:text-purple-400",
+  "text-pink-600 dark:text-pink-400",
+  "text-cyan-600 dark:text-cyan-400",
+  "text-orange-600 dark:text-orange-400",
+];
+function zoneTextColor(zone: string): string {
+  return ZONE_TEXT_COLORS[zoneHash(zone) % ZONE_TEXT_COLORS.length];
 }
 
 // TanStack Table v9 registers row-model factories and stateful features
@@ -135,6 +156,7 @@ export function ReviewTable({
   feeCategoryMap,
   registrationCategoryMap,
   fieldPermissions,
+  isVendor,
   initialSortIds,
 }: {
   sessionId: string;
@@ -143,6 +165,7 @@ export function ReviewTable({
   feeCategoryMap: Map<string, string>;
   registrationCategoryMap: Map<string, string>;
   fieldPermissions: FieldPermissions;
+  isVendor: boolean;
   initialSortIds: string[];
 }) {
   const [search, setSearch] = useState("");
@@ -222,7 +245,9 @@ export function ReviewTable({
       zoneCounts.set(r.group_zone, (zoneCounts.get(r.group_zone) ?? 0) + 1);
     }
 
-    const admittedByCategory = new Map<string, number>();
+    // Every configured category shows up even with 0 admitted so far, rather than
+    // only appearing once someone's actually been admitted into it.
+    const admittedByCategory = new Map<string, number>([...registrationCategoryMap.values()].map((label) => [label, 0]));
     for (const r of active) {
       if (r.admission_status !== "正取" || !r.registration_category_id) continue;
       const label = registrationCategoryMap.get(r.registration_category_id) ?? "-";
@@ -317,16 +342,7 @@ export function ReviewTable({
             header: "審核結果",
             accessorFn: (r) => r.review_status,
             cell: ({ row }) => (
-              <ReviewStatusCell
-                sessionId={sessionId}
-                registrationId={row.original.id}
-                reviewStatus={row.original.review_status}
-                resubmissionReason={row.original.resubmission_reason ?? ""}
-                members={row.original.members}
-                disabled={!canEditAdmission}
-                onSaveReviewStatus={saveField(row.original.id, "review_status")}
-                onSaveReason={saveField(row.original.id, "resubmission_reason")}
-              />
+              <ReviewStatusCell reviewStatus={row.original.review_status} members={row.original.members} />
             ),
           },
           {
@@ -495,8 +511,22 @@ export function ReviewTable({
           id: "flags",
           header: "疑似重複",
           enableSorting: false,
-          cell: ({ row }) =>
-            row.original.duplicate_flag ? <Badge variant="secondary">疑似重複</Badge> : null,
+          cell: ({ row }) => {
+            const matches = row.original.duplicateMatches;
+            if (!row.original.duplicate_flag || matches.length === 0) return null;
+            return (
+              <div className="grid gap-0.5">
+                {matches.map((m, i) => (
+                  <Badge key={i} variant="secondary" className="w-fit text-xs" title={`成員「${m.memberName}」與此人重複`}>
+                    {m.memberName}
+                    {m.otherSeq != null ? `：與 ${formatRegistrationNo(m.otherSeq)}` : "：與其他場次資料"}
+                    {m.otherSessionName ? `（${m.otherSessionName}）` : ""}
+                    重複
+                  </Badge>
+                ))}
+              </div>
+            );
+          },
         },
         {
           id: "actions",
@@ -504,12 +534,21 @@ export function ReviewTable({
           enableSorting: false,
           enableHiding: false,
           cell: ({ row }) => (
-            <Link
-              href={`/admin/registrations/${sessionId}/${row.original.id}`}
-              className="text-primary underline"
-            >
-              詳情
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/admin/registrations/${sessionId}/${row.original.id}`}
+                className="text-primary underline"
+              >
+                詳情
+              </Link>
+              {isVendor && (
+                <DeleteRegistrationButton
+                  sessionId={sessionId}
+                  registrationId={row.original.id}
+                  registrationSeq={row.original.registration_seq}
+                />
+              )}
+            </div>
           ),
         }
       );
@@ -527,6 +566,7 @@ export function ReviewTable({
       hideNote,
       canViewDocuments,
       canEditFeeReview,
+      isVendor,
       identityTypeMap,
       feeCategoryMap,
       registrationCategoryMap,
@@ -551,7 +591,7 @@ export function ReviewTable({
               ? { label: "各類別錄取人數", breakdown: summary.admittedByCategory }
               : { label: "已錄取", value: summary.admittedTotal }
           }
-          secondary={{ label: "分組區域", breakdown: summary.zoneCounts }}
+          secondary={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }}
         />
         <StatPair
           primary={{ label: "已繳費", value: summary.paidCount }}
@@ -695,7 +735,9 @@ export function ReviewTable({
   );
 }
 
-type StatValue = { label: string; value: string | number } | { label: string; breakdown: [string, number][] };
+type StatValue =
+  | { label: string; value: string | number }
+  | { label: string; breakdown: [string, number][]; colorFn?: (key: string) => string };
 
 function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatValue }) {
   return (
@@ -717,7 +759,13 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
         ) : (
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {stat.breakdown.map(([k, v]) => (
-              <span key={k} className={size === "lg" ? "text-sm font-semibold" : "text-muted-foreground text-xs"}>
+              <span
+                key={k}
+                className={cn(
+                  size === "lg" ? "text-sm font-semibold" : "text-xs",
+                  stat.colorFn ? stat.colorFn(k) : size === "lg" ? "" : "text-muted-foreground"
+                )}
+              >
                 {k} {v}
               </span>
             ))}

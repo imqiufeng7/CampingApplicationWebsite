@@ -15,25 +15,23 @@ export type ActionState = { error: string | null };
 // sleeping_bag_own_qty/rent_qty deliberately excluded — they're system-derived from
 // each member's fee category selection now (see fn_recompute_sleeping_bag_counts,
 // supabase/migrations/20260731110001_auto_approve_fee_categories.sql), not a value any
-// role enters directly.
+// role enters directly. review_status also excluded — it's computed from each
+// member's fee_review_result/needs_resubmission (see
+// fn_recompute_registration_review_status), never written directly.
 export type RegistrationEditableField =
-  | "review_status"
   | "admission_status"
   | "waitlist_rank"
   | "group_zone"
   | "group_number"
-  | "resubmission_reason"
   | "is_cancelled"
   | "cancel_reason"
   | "admin_note";
 
 const FIELD_GROUP_BY_COLUMN: Record<RegistrationEditableField, FieldGroup> = {
-  review_status: "錄取分組結果",
   admission_status: "錄取分組結果",
   waitlist_rank: "錄取分組結果",
   group_zone: "錄取分組結果",
   group_number: "錄取分組結果",
-  resubmission_reason: "錄取分組結果",
   is_cancelled: "取消退費資訊",
   cancel_reason: "取消退費資訊",
   admin_note: "備註",

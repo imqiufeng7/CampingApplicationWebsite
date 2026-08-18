@@ -10,9 +10,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import {
   updateMemberFeeReview,
+  updateMemberResubmission,
+  sendResubmissionNotice,
   type ActionState,
 } from "@/app/admin/(protected)/registrations/[sessionId]/[registrationId]/actions";
 import { getMemberIdNumbersForRegistration } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
@@ -25,6 +29,8 @@ type MemberInfo = {
   org_other_text: string | null;
   fee_category_id: string | null;
   fee_review_result: string;
+  needs_resubmission: boolean;
+  resubmission_note: string | null;
   birth_year_roc: number | null;
   birth_month: number | null;
   birth_day: number | null;
@@ -89,6 +95,68 @@ function MemberFeeReviewForm({
       </select>
       <SubmitButton>更新</SubmitButton>
     </form>
+  );
+}
+
+// Per-member 退回補件: lives here (not the review-table overview) because a document
+// problem is specific to the person whose file it is — different members in the same
+// registration can each have their own reason.
+function MemberResubmissionForm({
+  sessionId,
+  registrationId,
+  member,
+  canEdit,
+}: {
+  sessionId: string;
+  registrationId: string;
+  member: MemberInfo;
+  canEdit: boolean;
+}) {
+  const [checked, setChecked] = useState(member.needs_resubmission);
+  const [note, setNote] = useState(member.resubmission_note ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const result = await updateMemberResubmission(sessionId, registrationId, member.id, checked, note);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已更新補件狀態");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!canEdit) {
+    return member.needs_resubmission ? (
+      <p className="text-destructive text-sm">需補件：{member.resubmission_note}</p>
+    ) : null;
+  }
+
+  return (
+    <div className="grid gap-2 rounded-lg border border-destructive/30 p-2.5">
+      <div className="flex items-center gap-2">
+        <Checkbox checked={checked} onCheckedChange={(v) => setChecked(Boolean(v))} />
+        <span className="text-sm font-medium">此成員需要補件</span>
+      </div>
+      {checked && (
+        <Textarea
+          placeholder="請填寫需補件原因，例如：證件照片模糊，請重新上傳"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={2}
+          className="text-sm"
+        />
+      )}
+      <div>
+        <Button type="button" size="sm" variant="outline" disabled={saving} onClick={handleSave}>
+          {saving ? "儲存中..." : "更新補件狀態"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -214,6 +282,13 @@ function MemberPanel({
           canEdit={canEdit}
         />
       </div>
+
+      <MemberResubmissionForm
+        sessionId={sessionId}
+        registrationId={registrationId}
+        member={member}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
@@ -238,6 +313,7 @@ export function MemberDocumentsDialog({
   const [open, setOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(members[0]?.id ?? null);
   const [idNumbers, setIdNumbers] = useState<Map<string, string | null>>(new Map());
+  const [sending, setSending] = useState(false);
 
   const filesByMember = useMemo(() => {
     const map = new Map<string, FileInfo[]>();
@@ -252,6 +328,7 @@ export function MemberDocumentsDialog({
 
   const selectedMember = members.find((m) => m.id === selectedMemberId) ?? null;
   const memberFiles = selectedMemberId ? (filesByMember.get(selectedMemberId) ?? []) : [];
+  const flaggedCount = members.filter((m) => m.needs_resubmission).length;
 
   useEffect(() => {
     if (!open) return;
@@ -263,6 +340,20 @@ export function MemberDocumentsDialog({
       setIdNumbers(new Map(results.map((r) => [r.memberId, r.idNumber])));
     });
   }, [open, sessionId, registrationId, members]);
+
+  async function handleSendNotice() {
+    setSending(true);
+    try {
+      const result = await sendResubmissionNotice(sessionId, registrationId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已寄送補件通知");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const totalFileCount = files.length;
 
@@ -299,6 +390,7 @@ export function MemberDocumentsDialog({
                 }
               >
                 {m.name}
+                {m.needs_resubmission && <span className="ml-1">🚩</span>}
                 <span className="text-muted-foreground ml-1 text-xs">
                   ({(filesByMember.get(m.id) ?? []).length})
                 </span>
@@ -320,6 +412,15 @@ export function MemberDocumentsDialog({
             />
           )}
         </div>
+
+        {canEdit && flaggedCount > 0 && (
+          <div className="flex items-center justify-between border-t pt-3">
+            <p className="text-muted-foreground text-sm">目前有 {flaggedCount} 位成員被標記需補件</p>
+            <Button type="button" size="sm" disabled={sending} onClick={handleSendNotice}>
+              {sending ? "寄送中..." : "寄送補件通知"}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
