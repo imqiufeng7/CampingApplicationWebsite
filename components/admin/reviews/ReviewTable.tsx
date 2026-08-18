@@ -8,6 +8,7 @@ import {
   createSortedRowModel,
   flexRender,
   rowPaginationFeature,
+  rowSelectionFeature,
   rowSortingFeature,
   tableFeatures,
   useTable,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -40,6 +42,7 @@ import { ReviewStatusCell } from "@/components/admin/reviews/ReviewStatusCell";
 import { MemberDocumentsDialog } from "@/components/admin/reviews/MemberDocumentsDialog";
 import { ExportMenu } from "@/components/admin/reviews/ExportMenu";
 import { DeleteRegistrationButton } from "@/components/admin/reviews/DeleteRegistrationButton";
+import { SendSelectedResultsDialog } from "@/components/admin/reviews/SendSelectedResultsDialog";
 import { updateRegistrationField, type RegistrationEditableField } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
@@ -155,6 +158,7 @@ const reviewTableFeatures = tableFeatures({
   columnVisibilityFeature,
   rowPaginationFeature,
   paginatedRowModel: createPaginatedRowModel(),
+  rowSelectionFeature,
 });
 
 export function ReviewTable({
@@ -281,6 +285,21 @@ export function ReviewTable({
   const columns = useMemo<ColumnDef<typeof reviewTableFeatures, ReviewRow, unknown>[]>(
     () => {
       const cols: ColumnDef<typeof reviewTableFeatures, ReviewRow, unknown>[] = [
+        {
+          id: "select",
+          header: ({ table }) => (
+            <Checkbox
+              checked={table.getIsAllPageRowsSelected()}
+              indeterminate={!table.getIsAllPageRowsSelected() && table.getIsSomePageRowsSelected()}
+              onCheckedChange={(v) => table.toggleAllPageRowsSelected(Boolean(v))}
+            />
+          ),
+          enableSorting: false,
+          enableHiding: false,
+          cell: ({ row }) => (
+            <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(Boolean(v))} />
+          ),
+        },
         {
           id: "no",
           header: "編號",
@@ -598,8 +617,11 @@ export function ReviewTable({
     features: reviewTableFeatures,
     data: filtered,
     columns,
+    getRowId: (row) => row.id,
     initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
   });
+
+  const selectedIds = table.getSelectedRowModel().rows.map((row) => row.original.id);
 
   return (
     <div className="grid gap-3">
@@ -696,6 +718,12 @@ export function ReviewTable({
 
         <ExportMenu rows={filtered} registrationCategoryMap={registrationCategoryMap} />
 
+        {canEditAdmission && <SendSelectedResultsDialog sessionId={sessionId} registrationIds={selectedIds} />}
+
+        <span className="text-muted-foreground text-xs">
+          點擊欄位標題排序；按住 Shift 點擊可依序加入多層排序
+        </span>
+
         <span className="text-muted-foreground ml-auto text-sm">共 {filtered.length} 筆</span>
       </div>
 
@@ -703,24 +731,32 @@ export function ReviewTable({
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (
             <TableRow key={hg.id}>
-              {hg.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  onClick={
-                    header.column.getCanSort()
-                      ? header.column.getToggleSortingHandler()
-                      : undefined
-                  }
-                  className={cn(
-                    "bg-muted/50 h-11 px-3 text-center",
-                    header.column.getCanSort() ? "cursor-pointer select-none" : undefined
-                  )}
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                  {header.column.getIsSorted() === "asc" && " ▲"}
-                  {header.column.getIsSorted() === "desc" && " ▼"}
-                </TableHead>
-              ))}
+              {hg.headers.map((header) => {
+                const sortIndex = header.column.getSortIndex();
+                const showSortIndex = header.column.getIsSorted() && table.state.sorting.length > 1;
+                return (
+                  <TableHead
+                    key={header.id}
+                    onClick={
+                      header.column.getCanSort()
+                        ? header.column.getToggleSortingHandler()
+                        : undefined
+                    }
+                    title={header.column.getCanSort() ? "點擊排序；按住 Shift 點擊可依序加入多層排序" : undefined}
+                    className={cn(
+                      "bg-muted/50 h-11 px-3 text-center",
+                      header.column.getCanSort() ? "cursor-pointer select-none" : undefined
+                    )}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getIsSorted() === "asc" && " ▲"}
+                    {header.column.getIsSorted() === "desc" && " ▼"}
+                    {showSortIndex && (
+                      <sup className="text-primary ml-0.5 font-semibold">{sortIndex + 1}</sup>
+                    )}
+                  </TableHead>
+                );
+              })}
             </TableRow>
           ))}
         </TableHeader>
@@ -771,11 +807,16 @@ type StatValue =
   | { label: string; value: string | number }
   | { label: string; breakdown: [string, number][]; colorFn?: (key: string) => string };
 
+// Deliberately always dark regardless of the site's own light/dark theme toggle — a
+// fixed high-contrast "KPI card" look the vendor asked for specifically for these four
+// summary blocks. The 分組區域 breakdown is the one exception: its per-zone colorFn
+// text stays as-is (zoneTextColor already picks colors readable on a dark card) rather
+// than being forced white, since the color coding itself is the point there.
 function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatValue }) {
   return (
-    <div className="bg-card rounded-lg border p-2">
+    <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-2">
       <StatLine stat={primary} size="lg" />
-      <div className="my-1 border-t" />
+      <div className="my-1 border-t border-zinc-700" />
       <StatLine stat={secondary} size="sm" />
     </div>
   );
@@ -785,9 +826,9 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
   if ("breakdown" in stat) {
     return (
       <div>
-        <p className="text-muted-foreground mb-0.5 text-xs">{stat.label}</p>
+        <p className="mb-0.5 text-xs text-zinc-400">{stat.label}</p>
         {stat.breakdown.length === 0 ? (
-          <p className="text-muted-foreground text-sm">無資料</p>
+          <p className="text-sm text-zinc-400">無資料</p>
         ) : (
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {stat.breakdown.map(([k, v]) => (
@@ -795,7 +836,7 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
                 key={k}
                 className={cn(
                   size === "lg" ? "text-sm font-semibold" : "text-xs",
-                  stat.colorFn ? stat.colorFn(k) : size === "lg" ? "" : "text-muted-foreground"
+                  stat.colorFn ? stat.colorFn(k) : "text-white"
                 )}
               >
                 {k} {v}
@@ -808,8 +849,10 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
   }
   return (
     <div>
-      <p className="text-muted-foreground mb-0.5 text-xs">{stat.label}</p>
-      <p className={size === "lg" ? "text-lg font-bold" : "text-sm font-medium"}>{stat.value}</p>
+      <p className="mb-0.5 text-xs text-zinc-400">{stat.label}</p>
+      <p className={cn("text-white", size === "lg" ? "text-lg font-bold" : "text-sm font-medium")}>
+        {stat.value}
+      </p>
     </div>
   );
 }

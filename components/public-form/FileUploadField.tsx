@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/lib/uploadConstants";
 
 export function FileUploadField({
   sessionId,
@@ -24,6 +25,12 @@ export function FileUploadField({
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`檔案大小超過 ${MAX_FILE_SIZE_MB}MB 限制，請重新選擇`);
+      e.target.value = "";
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -81,12 +88,15 @@ export function FileUploadField({
           </button>
         </div>
       ) : (
-        <Input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          disabled={uploading}
-          onChange={handleFileChange}
-        />
+        <>
+          <Input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            disabled={uploading}
+            onChange={handleFileChange}
+          />
+          <p className="text-muted-foreground text-xs">檔案大小上限 {MAX_FILE_SIZE_MB}MB</p>
+        </>
       )}
       {uploading && <p className="text-muted-foreground text-sm">上傳中...</p>}
       {error && <p className="text-destructive text-sm">{error}</p>}

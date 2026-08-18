@@ -14,6 +14,14 @@ import {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const sessionId = body?.sessionId as string | undefined;
+  // Optional: restrict the batch to specific registrations (targeted resend — e.g. a
+  // 備取→正取 promotion, or someone who reports never getting the first email) instead
+  // of every eligible registration in the session. The eligibility filters below
+  // still apply on top of this, so an accidentally-selected 待確認/取消 row is silently
+  // skipped rather than emailed.
+  const registrationIds = Array.isArray(body?.registrationIds)
+    ? (body.registrationIds as unknown[]).filter((id): id is string => typeof id === "string")
+    : null;
 
   if (!sessionId) {
     return NextResponse.json({ error: "缺少 sessionId" }, { status: 400 });
@@ -42,13 +50,17 @@ export async function POST(request: Request) {
     .eq("id", sessionId)
     .maybeSingle();
 
-  const { data: registrations } = await admin
+  let registrationsQuery = admin
     .from("registrations")
     .select("*")
     .eq("session_id", sessionId)
     .eq("is_cancelled", false)
     .eq("review_status", "審核通過")
     .in("admission_status", ["正取", "備取"]);
+  if (registrationIds) {
+    registrationsQuery = registrationsQuery.in("id", registrationIds);
+  }
+  const { data: registrations } = await registrationsQuery;
 
   const { data: feeCategories } = await admin
     .from("session_fee_categories")

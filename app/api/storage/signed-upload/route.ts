@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MAX_FILE_SIZE_BYTES } from "@/lib/uploadConstants";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 const EXTENSION_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   if (typeof fileSize === "number" && fileSize > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: "檔案大小超過 10MB 限制" }, { status: 400 });
+    return NextResponse.json({ error: "檔案大小超過 5MB 限制" }, { status: 400 });
   }
 
   const admin = createAdminClient();

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { ActivityLogFeed } from "@/components/admin/ActivityLogFeed";
 
 const REVIEW_COLORS: Record<string, string> = {
   審核中: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
             .select("session_id, admin_email, summary, created_at")
             .in("session_id", sessionIds)
             .order("created_at", { ascending: false })
-            .limit(200)
+            .limit(1000)
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
   const activityBySession = new Map<string, { admin_email: string | null; summary: string; created_at: string }[]>();
   for (const a of activityLog ?? []) {
     const list = activityBySession.get(a.session_id) ?? [];
-    if (list.length < 8) list.push(a);
+    list.push(a);
     activityBySession.set(a.session_id, list);
   }
 
@@ -310,19 +310,9 @@ export default async function DashboardPage() {
                       📝 異動紀錄（{activity.length}）
                       <span className="ml-1 inline-block transition-transform group-open:rotate-90">▶</span>
                     </summary>
-                    <ul className="mt-2 grid gap-2">
-                      {activity.map((a, i) => (
-                        <li key={i} className="bg-card rounded-lg border p-2.5 text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
-                            <span className="text-muted-foreground text-xs whitespace-nowrap">
-                              {new Date(a.created_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground mt-1">{a.summary}</p>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-2">
+                      <ActivityLogFeed entries={activity} />
+                    </div>
                   </details>
                 )}
               </CardContent>
