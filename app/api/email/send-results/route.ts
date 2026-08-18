@@ -8,10 +8,8 @@ import {
   buildReviewResultVars,
   DEFAULT_REVIEW_RESULT_SUBJECT,
   DEFAULT_REVIEW_RESULT_BODY,
+  MANUAL_TRANSFER_ACCOUNT_INFO,
 } from "@/lib/email/templates/reviewResult";
-
-const MANUAL_TRANSFER_ACCOUNT_INFO =
-  "轉帳帳號：合作金庫銀行 (006) 1234-567-890123，戶名：OO活動籌備會";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -97,6 +95,7 @@ export async function POST(request: Request) {
       })),
       paymentAmount: registration.payment_amount,
       paymentMethod: registration.payment_method,
+      paymentDeadline: registration.payment_deadline,
       ecpayLink,
       manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
     });

@@ -158,6 +158,18 @@ export function SessionForm({
         />
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="payment_deadline_at">預設繳費期限</Label>
+        <Input
+          id="payment_deadline_at"
+          name="payment_deadline_at"
+          type="datetime-local"
+          defaultValue={toLocalInputValue(session?.payment_deadline_at ?? null)}
+        />
+        <p className="text-muted-foreground text-xs">
+          報名首次變成「待繳費」時自動套用此期限；個別報名可在繳費頁另行延長。留空表示不設期限。
+        </p>
+      </div>
+      <div className="grid gap-2">
         <Label htmlFor="status">狀態</Label>
         <select
           id="status"

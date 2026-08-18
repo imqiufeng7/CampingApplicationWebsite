@@ -24,7 +24,7 @@ export async function GET(
 
   const { data: registration } = await admin
     .from("registrations")
-    .select("id, payment_status, payment_amount, payment_method, session_id")
+    .select("id, payment_status, payment_amount, payment_method, payment_deadline, session_id")
     .eq("id", registrationId)
     .maybeSingle();
 
@@ -35,6 +35,13 @@ export async function GET(
   if (registration.payment_status === "已完成") {
     return new Response("此筆報名已完成繳費，無需重複付款。", {
       status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  if (registration.payment_deadline && new Date(registration.payment_deadline).getTime() < Date.now()) {
+    return new Response("此筆報名的繳費期限已過，請聯繫主辦單位延長繳費期限後再試。", {
+      status: 400,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, requireFieldEditable, requireRole, requireSessionAccess } from "@/lib/auth/guards";
 import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
+import { sendPaymentNoticeEmail } from "@/lib/email/sendPaymentNotice";
 
 export type ActionState = { error: string | null };
 
@@ -105,6 +106,53 @@ export async function updateRegistrationPayment(
   }
 
   revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+  return { error: null };
+}
+
+// Sets a new payment_deadline (or clears it with an empty value) and immediately
+// re-sends the payment notice so the registrant's inbox reflects the new date/link —
+// the whole point of extending someone's deadline is telling them about it.
+export async function extendPaymentDeadlineAndResend(
+  sessionId: string,
+  registrationId: string,
+  newDeadlineLocal: string
+): Promise<ActionState> {
+  const admin = await requireAdmin();
+  await requireFieldEditable(admin, "繳費狀態");
+  await requireSessionAccess(sessionId);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("registrations")
+    .update({ payment_deadline: newDeadlineLocal ? new Date(newDeadlineLocal).toISOString() : null })
+    .eq("id", registrationId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const adminClient = createAdminClient();
+  const result = await sendPaymentNoticeEmail(adminClient, registrationId);
+
+  revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+  revalidatePath(`/admin/payments/${sessionId}`);
+
+  if (!result.ok) {
+    return { error: `期限已更新，但重新寄送通知失敗：${result.error ?? "未知錯誤"}` };
+  }
+  return { error: null };
+}
+
+export async function resendPaymentNotice(sessionId: string, registrationId: string): Promise<ActionState> {
+  const admin = await requireAdmin();
+  await requireFieldEditable(admin, "繳費狀態");
+  await requireSessionAccess(sessionId);
+
+  const adminClient = createAdminClient();
+  const result = await sendPaymentNoticeEmail(adminClient, registrationId);
+  if (!result.ok) {
+    return { error: result.error ?? "寄送失敗" };
+  }
   return { error: null };
 }
 

@@ -13,9 +13,15 @@ export interface ReviewResultEmailInput {
   members: ReviewResultMemberInfo[];
   paymentAmount: number;
   paymentMethod: PaymentMethod | null;
+  paymentDeadline: string | null;
   ecpayLink: string | null;
   manualTransferAccountInfo: string;
 }
+
+// Shared across the batch send-results route and the single-registration payment
+// notice resend, so the two paths never drift.
+export const MANUAL_TRANSFER_ACCOUNT_INFO =
+  "轉帳帳號：合作金庫銀行 (006) 1234-567-890123，戶名：OO活動籌備會";
 
 // Fallback only — matches the row seeded by the email_templates migration, used if
 // that row was somehow deleted (getEmailTemplate's last resort).
@@ -69,12 +75,15 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
   } else if (input.admissionStatus === "取消") {
     paymentLines = "本次未錄取，無需繳費。";
   } else if (input.paymentAmount > 0) {
+    const deadlineLine = input.paymentDeadline
+      ? `\n請於 ${new Date(input.paymentDeadline).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short" })} 前完成繳費，逾期未繳將由主辦單位另行處理，如需延長請洽詢主辦單位。`
+      : "";
     if (input.paymentMethod === "online" && input.ecpayLink) {
-      paymentLines = `應繳金額：${input.paymentAmount} 元\n請於期限內完成線上繳費：${input.ecpayLink}`;
+      paymentLines = `應繳金額：${input.paymentAmount} 元\n請於期限內完成線上繳費：${input.ecpayLink}${deadlineLine}`;
     } else if (input.paymentMethod === "manual") {
-      paymentLines = `應繳金額：${input.paymentAmount} 元\n${input.manualTransferAccountInfo}\n轉帳完成後請回報帳號後五碼。`;
+      paymentLines = `應繳金額：${input.paymentAmount} 元\n${input.manualTransferAccountInfo}\n轉帳完成後請回報帳號後五碼。${deadlineLine}`;
     } else {
-      paymentLines = `應繳金額：${input.paymentAmount} 元，繳費方式將另行通知。`;
+      paymentLines = `應繳金額：${input.paymentAmount} 元，繳費方式將另行通知。${deadlineLine}`;
     }
   } else {
     paymentLines = "無需繳費。";

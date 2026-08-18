@@ -1,0 +1,104 @@
+import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/db/types";
+import { getEmailAdapter } from "@/lib/email";
+import { getEmailTemplate } from "@/lib/email/getTemplate";
+import { renderTemplate } from "@/lib/email/renderTemplate";
+import {
+  buildReviewResultVars,
+  DEFAULT_REVIEW_RESULT_SUBJECT,
+  DEFAULT_REVIEW_RESULT_BODY,
+  MANUAL_TRANSFER_ACCOUNT_INFO,
+} from "@/lib/email/templates/reviewResult";
+
+// Re-sends the same 審核結果 notice a single registration already got from the batch
+// send-results flow — used when a reviewer extends payment_deadline (the deadline in
+// the original email is now stale) or just wants to remind someone of an existing
+// deadline/link. ecpay_link is recomputed fresh from NEXT_PUBLIC_SITE_URL rather than
+// trusted as stored, same reasoning as the batch route.
+export async function sendPaymentNoticeEmail(
+  admin: SupabaseClient<Database>,
+  registrationId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: registration } = await admin
+    .from("registrations")
+    .select(
+      "id, session_id, contact_email, admission_status, waitlist_rank, payment_amount, payment_method, payment_deadline, ecpay_link"
+    )
+    .eq("id", registrationId)
+    .maybeSingle();
+
+  if (!registration) {
+    return { ok: false, error: "找不到報名資料" };
+  }
+
+  const { data: session } = await admin
+    .from("event_sessions")
+    .select("name")
+    .eq("id", registration.session_id)
+    .maybeSingle();
+
+  const { data: members } = await admin
+    .from("registration_members")
+    .select("name, fee_review_result, fee_category_id")
+    .eq("registration_id", registrationId)
+    .order("member_order", { ascending: true });
+
+  const { data: feeCategories } = await admin
+    .from("session_fee_categories")
+    .select("id, label, code")
+    .eq("session_id", registration.session_id);
+  const feeCategoryMap = new Map(
+    (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
+  );
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  let ecpayLink: string | null = registration.ecpay_link;
+  if (registration.payment_amount > 0 && registration.payment_method === "online") {
+    ecpayLink = `${siteUrl}/api/payments/ecpay/checkout/${registration.id}`;
+    if (ecpayLink !== registration.ecpay_link) {
+      await admin.from("registrations").update({ ecpay_link: ecpayLink }).eq("id", registration.id);
+    }
+  }
+
+  const vars = buildReviewResultVars({
+    sessionName: session?.name ?? "",
+    admissionStatus: registration.admission_status,
+    waitlistRank: registration.waitlist_rank,
+    members: (members ?? []).map((m) => ({
+      name: m.name,
+      feeReviewResult: m.fee_review_result,
+      feeCategoryLabel: m.fee_category_id ? (feeCategoryMap.get(m.fee_category_id) ?? null) : null,
+    })),
+    paymentAmount: registration.payment_amount,
+    paymentMethod: registration.payment_method,
+    paymentDeadline: registration.payment_deadline,
+    ecpayLink,
+    manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
+  });
+
+  const template = await getEmailTemplate(admin, "審核結果", registration.session_id, {
+    subjectTemplate: DEFAULT_REVIEW_RESULT_SUBJECT,
+    bodyTemplate: DEFAULT_REVIEW_RESULT_BODY,
+  });
+  const subject = renderTemplate(template.subjectTemplate, vars);
+  const body = renderTemplate(template.bodyTemplate, vars);
+
+  const adapter = getEmailAdapter();
+  const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });
+
+  await admin.from("email_logs").insert({
+    registration_id: registrationId,
+    type: "審核結果",
+    status: result.status,
+    sent_at: result.status === "sent" ? new Date().toISOString() : null,
+    error_message: result.errorMessage ?? null,
+    subject,
+    body,
+  });
+
+  if (result.status !== "sent") {
+    return { ok: false, error: result.errorMessage ?? "寄送失敗" };
+  }
+  return { ok: true };
+}

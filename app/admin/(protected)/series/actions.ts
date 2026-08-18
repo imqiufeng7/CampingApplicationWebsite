@@ -180,6 +180,7 @@ export async function cloneSession(
       registration_close_at: source.registration_close_at,
       result_announce_at: source.result_announce_at,
       cancel_deadline_at: source.cancel_deadline_at,
+      payment_deadline_at: source.payment_deadline_at,
       capacity_total: source.capacity_total,
       admission_quota: source.admission_quota,
       fee_base: source.fee_base,

@@ -61,6 +61,7 @@ export interface Database {
           registration_close_at: string | null;
           result_announce_at: string | null;
           cancel_deadline_at: string | null;
+          payment_deadline_at: string | null;
           fee_base: number;
           fee_discount_per_person: number;
           max_members_per_registration: number;
@@ -194,6 +195,7 @@ export interface Database {
           payment_status: PaymentStatus;
           payment_amount: number;
           payment_method: PaymentMethod | null;
+          payment_deadline: string | null;
           ecpay_trade_no: string | null;
           ecpay_link: string | null;
           ecpay_merchant_trade_no: string | null;
@@ -232,6 +234,7 @@ export interface Database {
             | "payment_status"
             | "payment_amount"
             | "payment_method"
+            | "payment_deadline"
             | "ecpay_trade_no"
             | "ecpay_link"
             | "ecpay_merchant_trade_no"

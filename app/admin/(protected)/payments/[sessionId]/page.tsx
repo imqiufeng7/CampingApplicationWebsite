@@ -31,7 +31,7 @@ export default async function PaymentListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, manual_transfer_last5, ecpay_trade_no, is_cancelled"
+      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, manual_transfer_last5, ecpay_trade_no, is_cancelled"
     )
     .eq("session_id", sessionId)
     .order("submitted_at", { ascending: true });
@@ -64,6 +64,11 @@ export default async function PaymentListPage({
           ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
           : "bg-muted text-muted-foreground";
 
+  // Server Component, evaluated fresh per request server-side — reading the current
+  // time here is exactly the point, not a purity bug (same as s/[sessionId]/page.tsx).
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
       <h1 className="text-lg font-semibold">{session?.name} — 繳費核對</h1>
@@ -78,6 +83,7 @@ export default async function PaymentListPage({
                 <TableHead>繳費狀態</TableHead>
                 <TableHead>金額</TableHead>
                 <TableHead>方式</TableHead>
+                <TableHead>繳費期限</TableHead>
                 <TableHead>轉帳後五碼</TableHead>
                 <TableHead>綠界交易編號</TableHead>
                 <TableHead />
@@ -107,6 +113,21 @@ export default async function PaymentListPage({
                   </TableCell>
                   <TableCell>{r.payment_amount}</TableCell>
                   <TableCell>{paymentMethodLabel(r.payment_method)}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {r.payment_deadline ? (
+                      <>
+                        {new Date(r.payment_deadline).toLocaleString("zh-TW", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                        {r.payment_status === "待繳費" && new Date(r.payment_deadline).getTime() < now && (
+                          <span className="text-destructive ml-1 text-xs font-medium">已逾期</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>{r.manual_transfer_last5 ?? "-"}</TableCell>
                   <TableCell>{r.ecpay_trade_no ?? "-"}</TableCell>
                   <TableCell>

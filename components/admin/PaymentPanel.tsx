@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { toast } from "sonner";
 import {
   updateRegistrationPayment,
+  extendPaymentDeadlineAndResend,
+  resendPaymentNotice,
   type ActionState,
 } from "@/app/admin/(protected)/registrations/[sessionId]/[registrationId]/actions";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,11 @@ import { SubmitButton } from "@/components/admin/SubmitButton";
 import type { Database } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
+
+function toLocalInputValue(value: string | null) {
+  if (!value) return "";
+  return value.slice(0, 16);
+}
 
 export function PaymentPanel({
   sessionId,
@@ -31,7 +38,47 @@ export function PaymentPanel({
   const action = updateRegistrationPayment.bind(null, sessionId, registrationId);
   const [state, formAction] = useActionState(action, initialState);
   const [generating, setGenerating] = useState(false);
+  const [deadlineInput, setDeadlineInput] = useState(toLocalInputValue(registration.payment_deadline));
+  const [extending, setExtending] = useState(false);
+  const [resending, setResending] = useState(false);
   const router = useRouter();
+
+  const [deadlinePassed, setDeadlinePassed] = useState(false);
+  useEffect(() => {
+    const deadline = registration.payment_deadline;
+    Promise.resolve().then(() => {
+      setDeadlinePassed(deadline ? new Date(deadline).getTime() < Date.now() : false);
+    });
+  }, [registration.payment_deadline]);
+
+  async function handleExtendDeadline() {
+    setExtending(true);
+    try {
+      const result = await extendPaymentDeadlineAndResend(sessionId, registrationId, deadlineInput);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已更新繳費期限並重新寄送通知");
+      router.refresh();
+    } finally {
+      setExtending(false);
+    }
+  }
+
+  async function handleResend() {
+    setResending(true);
+    try {
+      const result = await resendPaymentNotice(sessionId, registrationId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已重新寄送繳費通知");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleGenerateLink() {
     setGenerating(true);
@@ -156,6 +203,49 @@ export function PaymentPanel({
               </p>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="sm:col-span-2 grid gap-2 rounded-lg border p-3">
+        <Label>繳費期限</Label>
+        <p className="text-sm">
+          {registration.payment_deadline ? (
+            <>
+              {new Date(registration.payment_deadline).toLocaleString("zh-TW", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+              {deadlinePassed && <span className="text-destructive ml-2 font-medium">已逾期</span>}
+            </>
+          ) : (
+            <span className="text-muted-foreground">未設定</span>
+          )}
+        </p>
+        {editable && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                type="datetime-local"
+                value={deadlineInput}
+                onChange={(e) => setDeadlineInput(e.target.value)}
+                className="h-8 w-auto"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={extending}
+                onClick={handleExtendDeadline}
+              >
+                {extending ? "處理中..." : "更新期限並重新寄送通知"}
+              </Button>
+            </div>
+            <div>
+              <Button type="button" variant="ghost" size="sm" disabled={resending} onClick={handleResend}>
+                {resending ? "寄送中..." : "重新寄送繳費通知（不變更期限）"}
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </form>

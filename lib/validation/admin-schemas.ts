@@ -38,6 +38,7 @@ export const sessionSchema = z.object({
   registration_close_at: optionalDateTime,
   result_announce_at: optionalDateTime,
   cancel_deadline_at: optionalDateTime,
+  payment_deadline_at: optionalDateTime,
   fee_base: z.coerce.number().min(0).default(0),
   fee_discount_per_person: z.coerce.number().min(0).default(0),
   max_members_per_registration: z.coerce.number().int().min(1).default(1),

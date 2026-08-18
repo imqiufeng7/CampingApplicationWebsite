@@ -137,6 +137,13 @@ function zoneTextColor(zone: string): string {
   return ZONE_TEXT_COLORS[zoneHash(zone) % ZONE_TEXT_COLORS.length];
 }
 
+// Only needed for columns whose header isn't a plain string (e.g. sleeping_bag's
+// two-line header) — the "查看欄位" visibility dropdown falls back to this map
+// instead of the raw column id.
+const COLUMN_DISPLAY_LABELS: Record<string, string> = {
+  sleeping_bag: "睡袋(墊) 自備/租借",
+};
+
 // TanStack Table v9 registers row-model factories and stateful features
 // explicitly (unlike v8's useReactTable, which bundled everything). Defined at
 // module scope per the library's own guidance, since re-creating it on every
@@ -414,7 +421,13 @@ export function ReviewTable({
           },
           {
             id: "sleeping_bag",
-            header: "睡袋(墊) 自備/租借",
+            header: () => (
+              <span className="block leading-tight">
+                睡袋(墊)
+                <br />
+                自備/租借
+              </span>
+            ),
             accessorFn: (r) => r.sleeping_bag_own_qty,
             cell: ({ row }) => (
               <span title="依成員選擇的免付費類別自動計算，不可手動修改">
@@ -471,22 +484,6 @@ export function ReviewTable({
         ),
       });
 
-      if (!hideNote) {
-        cols.push({
-          id: "admin_note",
-          header: "備註",
-          enableSorting: false,
-          cell: ({ row }) => (
-            <EditableText
-              value={row.original.admin_note ?? ""}
-              disabled={!canEditNote}
-              className="h-8 w-32 text-sm"
-              onSave={saveField(row.original.id, "admin_note")}
-            />
-          ),
-        });
-      }
-
       if (canViewDocuments) {
         cols.push({
           id: "documents",
@@ -528,7 +525,26 @@ export function ReviewTable({
               </div>
             );
           },
-        },
+        }
+      );
+
+      if (!hideNote) {
+        cols.push({
+          id: "admin_note",
+          header: "備註",
+          enableSorting: false,
+          cell: ({ row }) => (
+            <EditableText
+              value={row.original.admin_note ?? ""}
+              disabled={!canEditNote}
+              className="h-8 w-32 text-sm"
+              onSave={saveField(row.original.id, "admin_note")}
+            />
+          ),
+        });
+      }
+
+      cols.push(
         {
           id: "actions",
           header: "",
@@ -667,7 +683,9 @@ export function ReviewTable({
                   checked={c.getIsVisible()}
                   onCheckedChange={(v) => c.toggleVisibility(Boolean(v))}
                 >
-                  {typeof c.columnDef.header === "string" ? c.columnDef.header : c.id}
+                  {typeof c.columnDef.header === "string"
+                    ? c.columnDef.header
+                    : (COLUMN_DISPLAY_LABELS[c.id] ?? c.id)}
                 </DropdownMenuCheckboxItem>
               ))}
           </DropdownMenuContent>
