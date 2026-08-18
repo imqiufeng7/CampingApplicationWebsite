@@ -20,10 +20,11 @@ export async function requestPasswordReset(email: string): Promise<ActionState> 
   const { data: existing } = await admin.auth.admin.listUsers();
   const user = existing?.users.find((u) => u.email === trimmed);
 
-  // Only send for an account that's actually an active admin_users row — a Supabase
-  // Auth user with no admin_users row (or one that never activated) shouldn't be
-  // handed a password-set link through this route at all.
-  if (user?.last_sign_in_at) {
+  // Only send for an account that's actually an admin_users row — not gated on
+  // last_sign_in_at (unreliable: GoTrue stamps it on token verification, not on
+  // actually having set a password — see sendAccountSetupLink's comment in
+  // app/admin/(protected)/admins/actions.ts for the full explanation).
+  if (user) {
     const { data: adminRow } = await admin.from("admin_users").select("id").eq("id", user.id).maybeSingle();
     if (adminRow) {
       const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/accept-invite`;

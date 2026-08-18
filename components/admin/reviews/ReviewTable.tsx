@@ -515,14 +515,15 @@ export function ReviewTable({
             const matches = row.original.duplicateMatches;
             if (!row.original.duplicate_flag || matches.length === 0) return null;
             return (
-              <div className="grid gap-0.5">
+              <div className="grid max-w-32 gap-1">
                 {matches.map((m, i) => (
-                  <Badge key={i} variant="secondary" className="w-fit text-xs" title={`成員「${m.memberName}」與此人重複`}>
-                    {m.memberName}
-                    {m.otherSeq != null ? `：與 ${formatRegistrationNo(m.otherSeq)}` : "：與其他場次資料"}
-                    {m.otherSessionName ? `（${m.otherSessionName}）` : ""}
-                    重複
-                  </Badge>
+                  <span
+                    key={i}
+                    title={`成員「${m.memberName}」與 ${m.otherSeq != null ? formatRegistrationNo(m.otherSeq) : "其他場次資料"}${m.otherSessionName ? `（${m.otherSessionName}）` : ""} 重複`}
+                    className="rounded bg-red-100 px-1.5 py-0.5 text-[11px] leading-snug break-words whitespace-normal text-red-900 dark:bg-red-900/40 dark:text-red-200"
+                  >
+                    {m.memberName} 與 {m.otherSeq != null ? formatRegistrationNo(m.otherSeq) : "其他場次"} 重複
+                  </span>
                 ))}
               </div>
             );
