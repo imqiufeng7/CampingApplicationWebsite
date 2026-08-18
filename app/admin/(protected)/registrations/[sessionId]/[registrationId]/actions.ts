@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, requireFieldEditable, requireRole, requireSessionAccess } from "@/lib/auth/guards";
 import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
 import { sendPaymentNoticeEmail } from "@/lib/email/sendPaymentNotice";
+import { taipeiInputValueToIso } from "@/lib/timezone";
 
 export type ActionState = { error: string | null };
 
@@ -124,7 +125,7 @@ export async function extendPaymentDeadlineAndResend(
   const supabase = await createClient();
   const { error } = await supabase
     .from("registrations")
-    .update({ payment_deadline: newDeadlineLocal ? new Date(newDeadlineLocal).toISOString() : null })
+    .update({ payment_deadline: taipeiInputValueToIso(newDeadlineLocal) })
     .eq("id", registrationId);
 
   if (error) {

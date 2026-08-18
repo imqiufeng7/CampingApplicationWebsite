@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { EcpayOrderInput } from "@/lib/ecpay/types";
+import { taipeiParts } from "@/lib/timezone";
 
 function getCredentials() {
   const merchantId = process.env.ECPAY_MERCHANT_ID;
@@ -62,15 +63,30 @@ export function verifyCheckMacValue(params: Record<string, string>): boolean {
   return computeCheckMacValue(rest) === CheckMacValue.toUpperCase();
 }
 
+// ECPay validates this is close to the real time it receives the request, and — same
+// as every other timestamp in this app — must be Asia/Taipei wall-clock time, not
+// whatever timezone the Node process happens to be running in (Vercel serverless
+// defaults to UTC). taipeiParts() is timezone-independent by construction.
 function formatTradeDate(date: Date): string {
+  const p = taipeiParts(date);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return `${p.year}/${pad(p.month)}/${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}`;
 }
 
-// MerchantTradeNo must be alphanumeric and <= 20 chars, so a raw UUID (36 chars, has
-// dashes) doesn't fit — this derives a stable, order-independent one from it.
+// MerchantTradeNo must be alphanumeric, <= 20 chars, and — critically — globally
+// unique per merchant *forever*, not just among successful orders: ECPay rejects
+// AioCheckOut with "訂單編號重複" (10300028) the moment a MerchantTradeNo is reused,
+// even if the earlier attempt was never completed. The checkout route computes a
+// fresh AioCheckOut form on every single visit (see
+// app/api/payments/ecpay/checkout/[registrationId]/route.ts), so a value derived only
+// from the registration id — deterministic, identical on every visit — meant a second
+// visit (a reload, "重新產生付款連結", or a deadline extension) always collided with
+// the first. Mixing in a per-call timestamp component makes every attempt distinct
+// while keeping a human-recognizable prefix from the registration id for debugging.
 export function buildMerchantTradeNo(registrationId: string): string {
-  return `R${registrationId.replace(/-/g, "")}`.slice(0, 20);
+  const shortId = registrationId.replace(/-/g, "").slice(0, 12);
+  const uniqueSuffix = Date.now().toString(36).slice(-7);
+  return `R${shortId}${uniqueSuffix}`.slice(0, 20);
 }
 
 export function buildAioCheckoutParams(order: EcpayOrderInput) {

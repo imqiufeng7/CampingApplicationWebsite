@@ -43,6 +43,7 @@ import { DeleteRegistrationButton } from "@/components/admin/reviews/DeleteRegis
 import { updateRegistrationField, type RegistrationEditableField } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import type { FieldPermissions } from "@/lib/auth/permissions";
 
 export type ReviewRowMember = {
@@ -292,7 +293,8 @@ export function ReviewTable({
           id: "submitted_at",
           header: "報名時間",
           accessorFn: (r) => r.submitted_at,
-          cell: ({ row }) => new Date(row.original.submitted_at).toLocaleString("zh-TW"),
+          cell: ({ row }) =>
+            new Date(row.original.submitted_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE }),
         },
         {
           id: "contact",
@@ -475,7 +477,8 @@ export function ReviewTable({
             <Badge variant="secondary" className={PAYMENT_BADGE_CLASS[row.original.payment_status]}>
               {row.original.payment_status}
             </Badge>
-            {row.original.payment_status === "待繳費" && row.original.payment_amount > 0 && (
+            {(row.original.payment_status === "待繳費" || row.original.payment_status === "已完成") &&
+              row.original.payment_amount > 0 && (
               <div className="text-muted-foreground mt-0.5 font-mono text-xs">
                 ${row.original.payment_amount.toLocaleString("zh-TW")}
               </div>

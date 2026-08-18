@@ -8,15 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { isoToTaipeiInputValue } from "@/lib/timezone";
 import type { Database } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
-
-function toLocalInputValue(value: string | null) {
-  if (!value) return "";
-  // datetime-local input wants "YYYY-MM-DDTHH:mm"
-  return value.slice(0, 16);
-}
 
 // Image upload needs a session row to attach images to, so the rich editor is only
 // available once the session actually exists (i.e. not on the "新增場次" create
@@ -127,7 +122,7 @@ export function SessionForm({
           id="registration_open_at"
           name="registration_open_at"
           type="datetime-local"
-          defaultValue={toLocalInputValue(session?.registration_open_at ?? null)}
+          defaultValue={isoToTaipeiInputValue(session?.registration_open_at ?? null)}
         />
       </div>
       <div className="grid gap-2">
@@ -136,7 +131,7 @@ export function SessionForm({
           id="registration_close_at"
           name="registration_close_at"
           type="datetime-local"
-          defaultValue={toLocalInputValue(session?.registration_close_at ?? null)}
+          defaultValue={isoToTaipeiInputValue(session?.registration_close_at ?? null)}
         />
       </div>
       <div className="grid gap-2">
@@ -145,7 +140,7 @@ export function SessionForm({
           id="result_announce_at"
           name="result_announce_at"
           type="datetime-local"
-          defaultValue={toLocalInputValue(session?.result_announce_at ?? null)}
+          defaultValue={isoToTaipeiInputValue(session?.result_announce_at ?? null)}
         />
       </div>
       <div className="grid gap-2">
@@ -154,7 +149,7 @@ export function SessionForm({
           id="cancel_deadline_at"
           name="cancel_deadline_at"
           type="datetime-local"
-          defaultValue={toLocalInputValue(session?.cancel_deadline_at ?? null)}
+          defaultValue={isoToTaipeiInputValue(session?.cancel_deadline_at ?? null)}
         />
       </div>
       <div className="grid gap-2">
@@ -163,7 +158,7 @@ export function SessionForm({
           id="payment_deadline_at"
           name="payment_deadline_at"
           type="datetime-local"
-          defaultValue={toLocalInputValue(session?.payment_deadline_at ?? null)}
+          defaultValue={isoToTaipeiInputValue(session?.payment_deadline_at ?? null)}
         />
         <p className="text-muted-foreground text-xs">
           報名首次變成「待繳費」時自動套用此期限；個別報名可在繳費頁另行延長。留空表示不設期限。

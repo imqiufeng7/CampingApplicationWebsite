@@ -4,6 +4,7 @@ import { requireSessionAccess } from "@/lib/auth/guards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRegistrationNo } from "@/lib/registrationNo";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import {
   Table,
   TableBody,
@@ -119,6 +120,7 @@ export default async function PaymentListPage({
                         {new Date(r.payment_deadline).toLocaleString("zh-TW", {
                           dateStyle: "medium",
                           timeStyle: "short",
+                          timeZone: TAIPEI_TIME_ZONE,
                         })}
                         {r.payment_status === "待繳費" && new Date(r.payment_deadline).getTime() < now && (
                           <span className="text-destructive ml-1 text-xs font-medium">已逾期</span>

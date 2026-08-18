@@ -1,4 +1,5 @@
 import type { AdmissionStatus, PaymentMethod } from "@/lib/db/types";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
 export interface ReviewResultMemberInfo {
   name: string;
@@ -76,7 +77,7 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     paymentLines = "本次未錄取，無需繳費。";
   } else if (input.paymentAmount > 0) {
     const deadlineLine = input.paymentDeadline
-      ? `\n請於 ${new Date(input.paymentDeadline).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short" })} 前完成繳費，逾期未繳將由主辦單位另行處理，如需延長請洽詢主辦單位。`
+      ? `\n請於 ${new Date(input.paymentDeadline).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short", timeZone: TAIPEI_TIME_ZONE })} 前完成繳費，逾期未繳將由主辦單位另行處理，如需延長請洽詢主辦單位。`
       : "";
     if (input.paymentMethod === "online" && input.ecpayLink) {
       paymentLines = `應繳金額：${input.paymentAmount} 元\n請於期限內完成線上繳費：${input.ecpayLink}${deadlineLine}`;

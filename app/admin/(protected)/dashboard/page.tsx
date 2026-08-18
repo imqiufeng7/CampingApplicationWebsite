@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
 const REVIEW_COLORS: Record<string, string> = {
   審核中: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
@@ -315,7 +316,7 @@ export default async function DashboardPage() {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
                             <span className="text-muted-foreground text-xs whitespace-nowrap">
-                              {new Date(a.created_at).toLocaleString("zh-TW")}
+                              {new Date(a.created_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })}
                             </span>
                           </div>
                           <p className="text-muted-foreground mt-1">{a.summary}</p>

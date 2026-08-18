@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { RegistrationForm } from "@/components/public-form/RegistrationForm";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
 export default async function PublicRegistrationPage({
   params,
@@ -40,11 +41,11 @@ export default async function PublicRegistrationPage({
         <p className="text-muted-foreground mt-2 text-sm">
           報名時間：
           {session.registration_open_at
-            ? new Date(session.registration_open_at).toLocaleString("zh-TW")
+            ? new Date(session.registration_open_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })
             : "未設定"}{" "}
           ~{" "}
           {session.registration_close_at
-            ? new Date(session.registration_close_at).toLocaleString("zh-TW")
+            ? new Date(session.registration_close_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })
             : "未設定"}
         </p>
       </div>

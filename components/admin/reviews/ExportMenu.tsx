@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatRegistrationNo } from "@/lib/registrationNo";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import type { ReviewRow } from "@/components/admin/reviews/ReviewTable";
 
 // 名字打碼：只留第一個字，其餘用 ○ 遮蔽（錄取名單對外流通風險較高，不應包含完整姓名）。
@@ -79,7 +80,7 @@ export function ExportMenu({
     ];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
-      new Date(r.submitted_at).toLocaleString("zh-TW"),
+      new Date(r.submitted_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE }),
       r.contact_email,
       excelText(r.contact_phone),
       categoryLabel(r),

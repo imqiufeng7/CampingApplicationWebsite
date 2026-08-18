@@ -15,14 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { isoToTaipeiInputValue, TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import type { Database } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
-
-function toLocalInputValue(value: string | null) {
-  if (!value) return "";
-  return value.slice(0, 16);
-}
 
 export function PaymentPanel({
   sessionId,
@@ -38,7 +34,7 @@ export function PaymentPanel({
   const action = updateRegistrationPayment.bind(null, sessionId, registrationId);
   const [state, formAction] = useActionState(action, initialState);
   const [generating, setGenerating] = useState(false);
-  const [deadlineInput, setDeadlineInput] = useState(toLocalInputValue(registration.payment_deadline));
+  const [deadlineInput, setDeadlineInput] = useState(isoToTaipeiInputValue(registration.payment_deadline));
   const [extending, setExtending] = useState(false);
   const [resending, setResending] = useState(false);
   const router = useRouter();
@@ -214,6 +210,7 @@ export function PaymentPanel({
               {new Date(registration.payment_deadline).toLocaleString("zh-TW", {
                 dateStyle: "medium",
                 timeStyle: "short",
+                timeZone: TAIPEI_TIME_ZONE,
               })}
               {deadlinePassed && <span className="text-destructive ml-2 font-medium">已逾期</span>}
             </>

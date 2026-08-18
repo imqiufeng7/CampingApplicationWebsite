@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { taipeiInputValueToIso } from "@/lib/timezone";
 
 export const seriesSchema = z.object({
   name: z.string().min(1, "請輸入活動系列名稱"),
@@ -8,10 +9,12 @@ export const seriesSchema = z.object({
 
 export type SeriesFormValues = z.infer<typeof seriesSchema>;
 
+// datetime-local inputs submit a naive "YYYY-MM-DDTHH:mm" string with no timezone —
+// interpreted as Asia/Taipei wall-clock time (see lib/timezone.ts), not the server's.
 const optionalDateTime = z
   .string()
   .optional()
-  .transform((v) => (v ? v : null));
+  .transform((v) => taipeiInputValueToIso(v));
 
 const optionalText = z
   .string()
