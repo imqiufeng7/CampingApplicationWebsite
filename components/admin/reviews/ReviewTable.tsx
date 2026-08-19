@@ -809,14 +809,18 @@ type StatValue =
 
 // Deliberately always dark regardless of the site's own light/dark theme toggle — a
 // fixed high-contrast "KPI card" look the vendor asked for specifically for these four
-// summary blocks. The 分組區域 breakdown is the one exception: its per-zone colorFn
-// text stays as-is (zoneTextColor already picks colors readable on a dark card) rather
-// than being forced white, since the color coding itself is the point there.
+// summary blocks. First pass used a plain near-black (zinc-900), which read as too
+// heavy/high-pressure — this warm dark brown is pulled from the same family as the
+// site's own terracotta primary (--primary: #b8412f in .theme-admin) rather than a
+// generic neutral, and is a couple steps lighter than near-black. The 分組區域
+// breakdown is the one exception: its per-zone colorFn text stays as-is (zoneTextColor
+// already picks colors readable on a dark card) rather than being forced white, since
+// the color coding itself is the point there.
 function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatValue }) {
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-2">
+    <div className="rounded-lg border border-[#7a4a3a] bg-[#5a3128] p-2">
       <StatLine stat={primary} size="lg" />
-      <div className="my-1 border-t border-zinc-700" />
+      <div className="my-1 border-t border-[#7a4a3a]" />
       <StatLine stat={secondary} size="sm" />
     </div>
   );
@@ -826,9 +830,9 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
   if ("breakdown" in stat) {
     return (
       <div>
-        <p className="mb-0.5 text-xs text-zinc-400">{stat.label}</p>
+        <p className="mb-0.5 text-xs text-[#e0b8a8]">{stat.label}</p>
         {stat.breakdown.length === 0 ? (
-          <p className="text-sm text-zinc-400">無資料</p>
+          <p className="text-sm text-[#e0b8a8]">無資料</p>
         ) : (
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
             {stat.breakdown.map(([k, v]) => (
@@ -849,7 +853,7 @@ function StatLine({ stat, size }: { stat: StatValue; size: "lg" | "sm" }) {
   }
   return (
     <div>
-      <p className="mb-0.5 text-xs text-zinc-400">{stat.label}</p>
+      <p className="mb-0.5 text-xs text-[#e0b8a8]">{stat.label}</p>
       <p className={cn("text-white", size === "lg" ? "text-lg font-bold" : "text-sm font-medium")}>
         {stat.value}
       </p>
