@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { EditRegistrationForm } from "@/components/public-form/EditRegistrationForm";
+import { DeleteMyRegistrationButton } from "@/components/public-form/DeleteMyRegistrationButton";
 import type { EditRegistrationData } from "@/lib/editRegistrationTypes";
 
 export default async function EditRegistrationPage({
@@ -67,8 +68,11 @@ export default async function EditRegistrationPage({
     );
   }
 
+  const canSelfDelete =
+    registrationData.payment_status !== "已完成" && registrationData.admission_status === "待確認";
+
   return (
-    <div className="p-4 py-8">
+    <div className="mx-auto grid max-w-2xl gap-4 p-4 py-8">
       <EditRegistrationForm
         token={token}
         session={session}
@@ -76,6 +80,11 @@ export default async function EditRegistrationPage({
         feeCategories={feeCategories ?? []}
         hideFeeCategory={registrationCategory?.is_free ?? false}
         data={registrationData}
+      />
+      <DeleteMyRegistrationButton
+        token={token}
+        eligible={canSelfDelete}
+        registrationNo={registrationData.registration_no}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { RegistrationCategoryEditor } from "@/components/admin/RegistrationCateg
 import { SessionEmailTemplateEditor } from "@/components/admin/SessionEmailTemplateEditor";
 import { BannerUploadField } from "@/components/admin/BannerUploadField";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import { PurgeRegistrationsButton } from "@/components/admin/PurgeRegistrationsButton";
 import type { EmailType } from "@/lib/db/types";
 
 const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: string[] }[] = [
@@ -51,6 +52,7 @@ export default async function SessionBuilderPage({
     { data: registrationCategories },
     { data: emailTemplateOverrides },
     { data: globalEmailTemplates },
+    { count: registrationCount },
   ] = await Promise.all([
     supabase.from("event_sessions").select("*").eq("id", sessionId).maybeSingle(),
     supabase
@@ -73,6 +75,7 @@ export default async function SessionBuilderPage({
       .select("type, subject_template, body_template")
       .eq("session_id", sessionId),
     supabase.from("email_templates").select("type, subject_template, body_template"),
+    supabase.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
   ]);
   const emailOverrideByType = new Map(
     (emailTemplateOverrides ?? []).map((t) => [t.type, t])
@@ -177,6 +180,19 @@ export default async function SessionBuilderPage({
               />
             );
           })}
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive text-base">危險區域：刪除報名資料</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PurgeRegistrationsButton
+            seriesId={seriesId}
+            sessionId={sessionId}
+            registrationCount={registrationCount ?? 0}
+          />
         </CardContent>
       </Card>
     </div>

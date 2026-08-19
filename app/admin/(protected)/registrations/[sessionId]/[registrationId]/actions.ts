@@ -7,6 +7,7 @@ import { requireAdmin, requireFieldEditable, requireRole, requireSessionAccess }
 import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
 import { sendPaymentNoticeEmail } from "@/lib/email/sendPaymentNotice";
 import { taipeiInputValueToIso } from "@/lib/timezone";
+import { deleteRegistrationStorageFiles } from "@/lib/deleteRegistrationFiles";
 
 export type ActionState = { error: string | null };
 
@@ -250,6 +251,11 @@ export async function sendResubmissionNotice(
 export async function deleteRegistration(sessionId: string, registrationId: string): Promise<ActionState> {
   await requireRole("vendor");
   await requireSessionAccess(sessionId);
+
+  // Storage cleanup needs service-role (no RLS policy grants an authenticated admin
+  // DELETE on storage.objects for this bucket) and must happen before the DB row goes
+  // away, since that's what the registration_files rows it reads are cascading from.
+  await deleteRegistrationStorageFiles(createAdminClient(), [registrationId]);
 
   const supabase = await createClient();
   const { error } = await supabase.from("registrations").delete().eq("id", registrationId);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/guards";
 import {
   seriesSchema,
@@ -11,6 +12,7 @@ import {
   feeCategorySchema,
   registrationCategorySchema,
 } from "@/lib/validation/admin-schemas";
+import { deleteRegistrationStorageFiles } from "@/lib/deleteRegistrationFiles";
 import type { EmailType } from "@/lib/db/types";
 
 export type ActionState = { error: string | null };
@@ -582,6 +584,49 @@ export async function deleteSessionEmailTemplate(
   if (error) return { error: error.message };
   revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
   return { error: null };
+}
+
+// PDPA retention-right tooling: purges every registration (and cascading members/
+// files/email logs) for a session, without touching the session record itself — kept
+// separate from deleteSession precisely so a vendor can clear out the personal data
+// for a session that's long over while keeping the session/event on record for
+// historical stats. Deliberately manual/on-demand rather than scheduled — the actual
+// retention period is a policy decision the vendor hasn't finalized yet (see the
+// PDPA compliance discussion); this is the tool they'll use once it is.
+export async function purgeSessionRegistrations(
+  seriesId: string,
+  sessionId: string
+): Promise<{ error: string | null; deletedCount?: number }> {
+  await requireRole("vendor");
+
+  const admin = createAdminClient();
+
+  const { data: registrations, error: fetchError } = await admin
+    .from("registrations")
+    .select("id")
+    .eq("session_id", sessionId);
+
+  if (fetchError) {
+    return { error: fetchError.message };
+  }
+
+  const registrationIds = (registrations ?? []).map((r) => r.id);
+  if (registrationIds.length === 0) {
+    return { error: null, deletedCount: 0 };
+  }
+
+  await deleteRegistrationStorageFiles(admin, registrationIds);
+
+  const { error: deleteError } = await admin.from("registrations").delete().eq("session_id", sessionId);
+  if (deleteError) {
+    return { error: deleteError.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}`);
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  revalidatePath(`/admin/reviews/${sessionId}`);
+  revalidatePath(`/admin/payments/${sessionId}`);
+  return { error: null, deletedCount: registrationIds.length };
 }
 
 // registrations.session_id is ON DELETE RESTRICT (see init_schema.sql) — a session

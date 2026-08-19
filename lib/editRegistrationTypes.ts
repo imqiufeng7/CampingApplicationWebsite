@@ -26,5 +26,7 @@ export interface EditRegistrationData {
   contact_email: string;
   contact_phone: string;
   is_cancelled: boolean;
+  payment_status: string;
+  admission_status: string;
   members: EditRegistrationMemberData[];
 }

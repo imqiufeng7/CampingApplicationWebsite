@@ -54,6 +54,19 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // Same DB-counter rate limiter used by fn_submit_registration (see
+  // supabase/migrations/20260820120001_pdpa_hardening.sql) — a generous ceiling since
+  // a single registration can involve several members each uploading 1-2 documents.
+  const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const { data: withinLimit } = await admin.rpc("fn_check_rate_limit", {
+    p_bucket_key: clientIp ? `upload:${clientIp}` : null,
+    p_max_count: 30,
+    p_window_seconds: 600,
+  });
+  if (withinLimit === false) {
+    return NextResponse.json({ error: "上傳次數過於頻繁，請稍後再試" }, { status: 429 });
+  }
+
   const { data: session } = await admin
     .from("event_sessions")
     .select("id, status")

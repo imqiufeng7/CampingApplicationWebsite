@@ -221,6 +221,7 @@ export interface Database {
           registration_seq: number;
           edit_token: string;
           admin_note: string | null;
+          consent_given_at: string;
           created_at: string;
           updated_at: string;
         };
@@ -387,9 +388,13 @@ export interface Database {
           admin_user_id: string | null;
           admin_email: string | null;
           summary: string;
+          ip_address: string | null;
+          reason: string | null;
           created_at: string;
         };
-        Insert: never; // only ever inserted by the fn_log_registration_change trigger
+        // Only ever inserted by fn_log_registration_change (the change trigger) or
+        // fn_get_registration_member_id_number (logs a read-access event on decrypt).
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -446,6 +451,18 @@ export interface Database {
       current_admin_managed_sessions: {
         Args: Record<string, never>;
         Returns: string[] | null;
+      };
+      fn_check_rate_limit: {
+        Args: { p_bucket_key: string | null; p_max_count: number; p_window_seconds: number };
+        Returns: boolean;
+      };
+      fn_client_ip: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      fn_delete_registration_via_token: {
+        Args: { p_token: string };
+        Returns: undefined;
       };
     };
   };
