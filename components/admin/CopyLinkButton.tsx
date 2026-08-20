@@ -18,6 +18,9 @@ export function CopyLinkButton({ url }: { url: string }) {
       <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
         {copied ? "已複製" : "複製連結"}
       </Button>
+      <Button type="button" variant="outline" size="sm" render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
+        開啟報名頁面
+      </Button>
     </div>
   );
 }

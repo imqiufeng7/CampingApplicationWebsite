@@ -245,18 +245,6 @@ export function RegistrationForm({
         {session.location && <p className="text-muted-foreground text-sm">📍 {session.location}</p>}
       </div>
 
-      {session.location && (
-        <div className="aspect-video w-full overflow-hidden rounded-lg border">
-          <iframe
-            title="活動地點地圖"
-            className="h-full w-full"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            src={`https://www.google.com/maps?q=${encodeURIComponent(session.location)}&output=embed`}
-          />
-        </div>
-      )}
-
       {session.intro_content && (
         <SectionCard title="🏕️ 活動介紹" delay={40}>
           <RichContent html={session.intro_content} />
@@ -284,6 +272,18 @@ export function RegistrationForm({
       <SectionCard title="活動辦法/注意事項" delay={200}>
         <RichContent html={session.rules_text || DEFAULT_RULES_TEXT} />
       </SectionCard>
+
+      {session.location && (
+        <div className="aspect-video w-full overflow-hidden rounded-lg border">
+          <iframe
+            title="活動地點地圖"
+            className="h-full w-full"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps?q=${encodeURIComponent(session.location)}&output=embed`}
+          />
+        </div>
+      )}
     </>
   );
 
