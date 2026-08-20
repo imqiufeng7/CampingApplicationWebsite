@@ -133,6 +133,10 @@ export default function AcceptInvitePage() {
       return;
     }
 
+    // Best-effort — the admin list's "已完成設定" status is a convenience, not a
+    // security gate, so a failure here shouldn't block the person from finishing setup.
+    await supabase.rpc("mark_admin_activated");
+
     setStatus("done");
     router.replace("/admin");
     router.refresh();

@@ -322,6 +322,7 @@ export interface Database {
           dashboard_tour_seen_at: string | null;
           reviews_tour_seen_at: string | null;
           payments_tour_seen_at: string | null;
+          activated_at: string | null;
           created_at: string;
         };
         Insert: Partial<Omit<Database["public"]["Tables"]["admin_users"]["Row"], "created_at">> & {
@@ -471,6 +472,10 @@ export interface Database {
       };
       mark_admin_tour_seen: {
         Args: { p_page: string };
+        Returns: undefined;
+      };
+      mark_admin_activated: {
+        Args: Record<string, never>;
         Returns: undefined;
       };
     };

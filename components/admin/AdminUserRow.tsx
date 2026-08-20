@@ -10,13 +10,23 @@ import {
 } from "@/app/admin/(protected)/admins/actions";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
 const initialState: ActionState = { error: null };
+
+function formatTaipei(iso: string): string {
+  return new Date(iso).toLocaleString("zh-TW", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: TAIPEI_TIME_ZONE,
+  });
+}
 
 export function AdminUserRow({
   adminUser,
   sessions,
   roles,
+  lastSignInAt,
 }: {
   adminUser: {
     id: string;
@@ -24,9 +34,11 @@ export function AdminUserRow({
     name: string | null;
     role_id: string;
     managed_session_ids: string[];
+    activated_at: string | null;
   };
   sessions: { id: string; name: string }[];
   roles: { id: string; key: string; label: string }[];
+  lastSignInAt: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [roleId, setRoleId] = useState(adminUser.role_id);
@@ -63,6 +75,14 @@ export function AdminUserRow({
             {adminUser.name ?? adminUser.email} <span className="text-muted-foreground">({roleLabel})</span>
           </p>
           <p className="text-muted-foreground text-sm">{adminUser.email}</p>
+          <p className="text-muted-foreground text-sm">
+            {adminUser.activated_at ? (
+              <>✅ 已完成密碼設定（{formatTaipei(adminUser.activated_at)}）</>
+            ) : (
+              <span className="text-destructive">⏳ 尚未完成密碼設定</span>
+            )}
+            {lastSignInAt && <> · 最後登入：{formatTaipei(lastSignInAt)}</>}
+          </p>
           {sessionNames.length > 0 && (
             <p className="text-muted-foreground text-sm">可管理場次：{sessionNames.join("、")}</p>
           )}
