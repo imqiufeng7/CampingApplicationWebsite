@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { OnboardingTour } from "@/components/admin/OnboardingTour";
+import { paymentsTourSteps } from "@/lib/tours/steps";
 
 export default async function PaymentListPage({
   params,
@@ -20,7 +22,7 @@ export default async function PaymentListPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  await requireSessionAccess(sessionId);
+  const admin = await requireSessionAccess(sessionId);
   const supabase = await createClient();
 
   const { data: session } = await supabase
@@ -72,10 +74,11 @@ export default async function PaymentListPage({
 
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
-      <h1 className="text-lg font-semibold">{session?.name} — 繳費核對</h1>
+      <OnboardingTour page="payments" alreadySeen={admin.tourSeen.payments} steps={paymentsTourSteps} />
+      <h1 className="text-lg font-semibold" data-tour="payment-page">{session?.name} — 繳費核對</h1>
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table data-tour="payment-table">
             <TableHeader>
               <TableRow>
                 <TableHead>編號</TableHead>
@@ -91,7 +94,7 @@ export default async function PaymentListPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(registrations ?? []).map((r) => (
+              {(registrations ?? []).map((r, index) => (
                 <TableRow key={r.id} className={r.is_cancelled ? "opacity-50" : undefined}>
                   <TableCell className="font-mono text-sm whitespace-nowrap">
                     {formatRegistrationNo(r.registration_seq)}
@@ -136,6 +139,7 @@ export default async function PaymentListPage({
                     <Link
                       href={`/admin/registrations/${sessionId}/${r.id}?view=payment`}
                       className="text-primary underline"
+                      data-tour={index === 0 ? "payment-detail-link" : undefined}
                     >
                       查看/核對
                     </Link>

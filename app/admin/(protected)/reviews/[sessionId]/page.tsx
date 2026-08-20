@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SendResultsDialog } from "@/components/admin/SendResultsDialog";
 import { sortRegistrationsForReview } from "@/lib/reviewSort";
 import { ReviewTable, type ReviewRow } from "@/components/admin/reviews/ReviewTable";
+import { OnboardingTour } from "@/components/admin/OnboardingTour";
+import { reviewsTourSteps } from "@/lib/tours/steps";
 
 export default async function ReviewListPage({
   params,
@@ -147,14 +149,17 @@ export default async function ReviewListPage({
 
   return (
     <div className="mx-auto grid max-w-7xl gap-4">
+      <OnboardingTour page="reviews" alreadySeen={admin.tourSeen.reviews} steps={reviewsTourSteps} />
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{session?.name} — 審核列表</h1>
         {canSendResults && (
-          <SendResultsDialog
-            sessionId={sessionId}
-            admittedCount={admittedCount}
-            waitlistCount={waitlistCount}
-          />
+          <div data-tour="review-send-results">
+            <SendResultsDialog
+              sessionId={sessionId}
+              admittedCount={admittedCount}
+              waitlistCount={waitlistCount}
+            />
+          </div>
         )}
       </div>
       <Card>

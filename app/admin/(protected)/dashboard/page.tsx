@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ActivityLogFeed } from "@/components/admin/ActivityLogFeed";
+import { OnboardingTour } from "@/components/admin/OnboardingTour";
+import { dashboardTourSteps } from "@/lib/tours/steps";
 
 const REVIEW_COLORS: Record<string, string> = {
   審核中: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
@@ -170,17 +172,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
+      <OnboardingTour page="dashboard" alreadySeen={admin.tourSeen.dashboard} steps={dashboardTourSteps} />
       <h1 className="text-lg font-semibold">儀表板</h1>
       <div className="grid gap-4 sm:grid-cols-2">
-        {(sessions ?? []).map((s) => {
+        {(sessions ?? []).map((s, sessionIndex) => {
           const stats = statsBySession.get(s.id)!;
           const activeGroups = stats.totalGroups - stats.cancelledGroups;
           const admittedGroups = stats.admissionStatus["正取"] ?? 0;
           const overQuota = s.admission_quota != null && admittedGroups > s.admission_quota;
           const sessionCategories = categoriesBySession.get(s.id) ?? [];
           const activity = activityBySession.get(s.id) ?? [];
+          // data-tour attributes are only placed on the first card — the onboarding
+          // tour targets one concrete example, and duplicating the attribute across
+          // every session card would just have driver.js highlight whichever one
+          // happens to be first in the DOM anyway.
+          const isFirst = sessionIndex === 0;
           return (
-            <Card key={s.id}>
+            <Card key={s.id} data-tour={isFirst ? "dashboard-card" : undefined}>
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">
@@ -190,7 +198,10 @@ export default async function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="grid gap-4 text-sm">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <div
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-5"
+                  data-tour={isFirst ? "dashboard-basic-stats" : undefined}
+                >
                   <Stat label="報名組數" value={activeGroups} />
                   <Stat label="總人數" value={stats.totalPeople} />
                   {sessionCategories.length === 0 && (
@@ -210,7 +221,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {sessionCategories.length > 0 && (
-                  <div>
+                  <div data-tour={isFirst ? "dashboard-category-stats" : undefined}>
                     <p className="text-muted-foreground mb-1.5 text-base">依報名類別</p>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {sessionCategories.map((rc) => {
@@ -263,10 +274,12 @@ export default async function DashboardPage() {
                   </div>
                 )}
 
-                <StatusBlocks title="審核結果" counts={stats.reviewStatus} colors={REVIEW_COLORS} />
-                <StatusBlocks title="錄取結果" counts={stats.admissionStatus} colors={ADMISSION_COLORS} />
+                <div data-tour={isFirst ? "dashboard-status-blocks" : undefined} className="grid gap-4">
+                  <StatusBlocks title="審核結果" counts={stats.reviewStatus} colors={REVIEW_COLORS} />
+                  <StatusBlocks title="錄取結果" counts={stats.admissionStatus} colors={ADMISSION_COLORS} />
+                </div>
 
-                <div>
+                <div data-tour={isFirst ? "dashboard-payment-status" : undefined}>
                   <p className="text-muted-foreground mb-1.5">繳費情況</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {Object.entries(stats.paymentStatus).map(([k, v]) => (
@@ -296,7 +309,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2" data-tour={isFirst ? "dashboard-goto-review" : undefined}>
                   <Link href={`/admin/reviews/${s.id}`}>
                     <Button type="button" variant="outline" size="sm">
                       前往審核
@@ -305,7 +318,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {activity.length > 0 && (
-                  <details className="group">
+                  <details className="group" data-tour={isFirst ? "dashboard-activity-log" : undefined}>
                     <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-sm font-medium">
                       📝 異動紀錄（{activity.length}）
                       <span className="ml-1 inline-block transition-transform group-open:rotate-90">▶</span>

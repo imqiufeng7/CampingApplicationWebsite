@@ -318,6 +318,9 @@ export interface Database {
           name: string | null;
           role_id: string;
           managed_session_ids: string[];
+          dashboard_tour_seen_at: string | null;
+          reviews_tour_seen_at: string | null;
+          payments_tour_seen_at: string | null;
           created_at: string;
         };
         Insert: Partial<Omit<Database["public"]["Tables"]["admin_users"]["Row"], "created_at">> & {
@@ -462,6 +465,10 @@ export interface Database {
       };
       fn_delete_registration_via_token: {
         Args: { p_token: string };
+        Returns: undefined;
+      };
+      mark_admin_tour_seen: {
+        Args: { p_page: string };
         Returns: undefined;
       };
     };

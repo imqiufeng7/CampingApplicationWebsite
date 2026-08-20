@@ -12,6 +12,7 @@ export interface CurrentAdmin {
   isVendor: boolean;
   managedSessionIds: string[];
   fieldPermissions: FieldPermissions;
+  tourSeen: { dashboard: boolean; reviews: boolean; payments: boolean };
 }
 
 const ALL_EDITABLE: FieldPermissions = Object.fromEntries(
@@ -33,7 +34,9 @@ export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
 
   const { data: adminRow } = await supabase
     .from("admin_users")
-    .select("id, email, name, role_id, managed_session_ids")
+    .select(
+      "id, email, name, role_id, managed_session_ids, dashboard_tour_seen_at, reviews_tour_seen_at, payments_tour_seen_at"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -74,5 +77,10 @@ export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
     isVendor,
     managedSessionIds: adminRow.managed_session_ids,
     fieldPermissions,
+    tourSeen: {
+      dashboard: adminRow.dashboard_tour_seen_at !== null,
+      reviews: adminRow.reviews_tour_seen_at !== null,
+      payments: adminRow.payments_tour_seen_at !== null,
+    },
   };
 });

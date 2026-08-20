@@ -625,7 +625,7 @@ export function ReviewTable({
 
   return (
     <div className="grid gap-3">
-      <div className="bg-muted/40 grid gap-2 rounded-xl border p-2.5">
+      <div className="bg-muted/40 grid gap-2 rounded-xl border p-2.5" data-tour="review-summary">
         {registrationCategoryMap.size > 0 && (
           <div className="border-b pb-2">
             <p className="text-muted-foreground mb-1 text-xs">各類別錄取人數</p>
@@ -655,7 +655,7 @@ export function ReviewTable({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" data-tour="review-filters">
         <Input
           placeholder="搜尋聯絡人/成員..."
           value={search}
@@ -727,7 +727,7 @@ export function ReviewTable({
         <span className="text-muted-foreground ml-auto text-sm">共 {filtered.length} 筆</span>
       </div>
 
-      <Table>
+      <Table data-tour="review-table">
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (
             <TableRow key={hg.id}>
