@@ -184,6 +184,15 @@ export function ReviewTable({
   const [reviewFilter, setReviewFilter] = useState("");
   const [admissionFilter, setAdmissionFilter] = useState("");
   const [cancelledFilter, setCancelledFilter] = useState("");
+  // Lifted out of the per-row "證明文件" cell — one dialog instance at the table
+  // level, driven by which registration is selected, rather than each row owning its
+  // own <Dialog>. A row-nested dialog would tear down (along with its open state)
+  // whenever a data refresh reordered/re-paginated rows around it — updating a
+  // member's fee review can shift sleeping-bag auto-counts, which feeds the default
+  // sort — with no dismiss event ever firing to explain why it "closed". Living at the
+  // table level and looking the registration up from the full `data` prop (not the
+  // filtered/paginated view) makes the dialog immune to that churn.
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState<string | null>(null);
 
   // 審核結果/錄取結果/備取順位/分組/睡袋/補件原因 all live in the 錄取分組結果 group; 取消狀態 is
   // its own group (取消退費資訊) since a role could edit one without the other.
@@ -205,6 +214,12 @@ export function ReviewTable({
     () => new Map(initialSortIds.map((id, i) => [id, i])),
     [initialSortIds]
   );
+
+  // Looked up from the full `data` prop, not the filtered/paginated view, so the open
+  // dialog keeps working even if a search/filter change would otherwise hide its row.
+  const selectedRegistration = selectedRegistrationId
+    ? (data.find((r) => r.id === selectedRegistrationId) ?? null)
+    : null;
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -512,15 +527,14 @@ export function ReviewTable({
           header: "證明文件",
           enableSorting: false,
           cell: ({ row }) => (
-            <MemberDocumentsDialog
-              sessionId={sessionId}
-              registrationId={row.original.id}
-              members={row.original.members}
-              files={row.original.files}
-              identityTypeMap={identityTypeMap}
-              feeCategoryMap={feeCategoryMap}
-              canEdit={canEditFeeReview}
-            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedRegistrationId(row.original.id)}
+            >
+              {`📎 ${row.original.files.length} 份文件`}
+            </Button>
           ),
         });
       }
@@ -800,6 +814,21 @@ export function ReviewTable({
             下一頁
           </Button>
         </div>
+      )}
+
+      {selectedRegistration && (
+        <MemberDocumentsDialog
+          key={selectedRegistration.id}
+          sessionId={sessionId}
+          registrationId={selectedRegistration.id}
+          members={selectedRegistration.members}
+          files={selectedRegistration.files}
+          identityTypeMap={identityTypeMap}
+          feeCategoryMap={feeCategoryMap}
+          canEdit={canEditFeeReview}
+          open={selectedRegistrationId !== null}
+          onOpenChange={(v) => setSelectedRegistrationId(v ? selectedRegistration.id : null)}
+        />
       )}
     </div>
   );

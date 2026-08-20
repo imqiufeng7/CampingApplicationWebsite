@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -321,6 +320,11 @@ function MemberPanel({
   );
 }
 
+// Controlled by the caller (ReviewTable renders one instance at the table level,
+// keyed by registrationId, rather than one per row) — see ReviewTable's own comment
+// on why: nesting this dialog inside a per-row table cell meant any table data
+// refresh that reordered/re-paginated rows around the open dialog's row could tear it
+// down along with the row, with no dismiss event ever firing to explain it.
 export function MemberDocumentsDialog({
   sessionId,
   registrationId,
@@ -329,6 +333,8 @@ export function MemberDocumentsDialog({
   identityTypeMap,
   feeCategoryMap,
   canEdit,
+  open,
+  onOpenChange,
 }: {
   sessionId: string;
   registrationId: string;
@@ -337,8 +343,9 @@ export function MemberDocumentsDialog({
   identityTypeMap: Map<string, string>;
   feeCategoryMap: Map<string, string>;
   canEdit: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(members[0]?.id ?? null);
   const [idNumbers, setIdNumbers] = useState<Map<string, string | null>>(new Map());
   const [sending, setSending] = useState(false);
@@ -383,34 +390,20 @@ export function MemberDocumentsDialog({
     }
   }
 
-  const totalFileCount = files.length;
-
   return (
     <Dialog
       open={open}
       onOpenChange={(v, eventDetails) => {
-        // Swapping the fee-review control to a proper Select (see MemberFeeReviewForm)
-        // didn't stop the dialog from closing on update — it kept happening via
-        // "outside-press"/"focus-out" reasons, most likely triggered by the toast
-        // notification (rendered in its own portal outside this dialog's DOM) or some
-        // other transient focus shift during the update, not an actual user gesture
-        // aimed at the dialog itself. Only real close intents — Escape, the X button,
-        // or the trigger button — should be allowed through; a genuine outside click on
-        // the backdrop unfortunately gets filtered out too, but Escape/X still work.
+        // Extra defense in depth, kept from before this became a controlled/lifted
+        // component: only real close intents (Escape, the X button) should dismiss it,
+        // not "outside-press"/"focus-out" — a genuine outside click on the backdrop
+        // unfortunately gets filtered out too, but Escape/X still work.
         if (!v && (eventDetails.reason === "outside-press" || eventDetails.reason === "focus-out")) {
           return;
         }
-        setOpen(v);
-        if (v) setSelectedMemberId(members[0]?.id ?? null);
+        onOpenChange(v);
       }}
     >
-      <DialogTrigger
-        render={
-          <Button type="button" variant="outline" size="sm">
-            {`📎 ${totalFileCount} 份文件`}
-          </Button>
-        }
-      />
       <DialogContent className="max-w-3xl sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>證明文件與減免審核</DialogTitle>
