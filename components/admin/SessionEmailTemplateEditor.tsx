@@ -9,10 +9,11 @@ import {
 } from "@/app/admin/(protected)/series/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { EmailBodyEditor } from "@/components/admin/EmailBodyEditor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { RichContent } from "@/components/public-form/RichContent";
 import type { EmailType } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
@@ -67,7 +68,7 @@ export function SessionEmailTemplateEditor({
         <>
           <div className="text-muted-foreground grid gap-1 text-sm">
             <p className="font-medium">{globalDefault.subject_template}</p>
-            <p className="line-clamp-3 whitespace-pre-wrap">{globalDefault.body_template}</p>
+            <RichContent html={globalDefault.body_template} className="line-clamp-3" />
           </div>
           <div>
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
@@ -88,13 +89,9 @@ export function SessionEmailTemplateEditor({
           </div>
           <div className="grid gap-2">
             <Label htmlFor={`s-body-${type}`}>內文</Label>
-            <Textarea
-              id={`s-body-${type}`}
+            <EmailBodyEditor
               name="body_template"
               defaultValue={override?.body_template ?? globalDefault.body_template}
-              required
-              rows={10}
-              className="font-mono text-sm"
             />
           </div>
           <p className="text-muted-foreground text-xs">

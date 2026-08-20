@@ -4,9 +4,10 @@ import { useActionState, useState } from "react";
 import { updateEmailTemplate, type ActionState } from "@/app/admin/(protected)/email-templates/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { EmailBodyEditor } from "@/components/admin/EmailBodyEditor";
 import { SubmitButton } from "@/components/admin/SubmitButton";
-import { renderTemplate } from "@/lib/email/renderTemplate";
+import { RichContent } from "@/components/public-form/RichContent";
+import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import type { EmailType } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
@@ -44,15 +45,7 @@ export function EmailTemplateEditor({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`body-${type}`}>內文</Label>
-          <Textarea
-            id={`body-${type}`}
-            name="body_template"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            required
-            rows={10}
-            className="font-mono text-sm"
-          />
+          <EmailBodyEditor name="body_template" defaultValue={body} onChange={setBody} />
         </div>
         <p className="text-muted-foreground text-xs">
           可用變數（系統會自動帶入實際內容，請勿刪除）：
@@ -68,7 +61,7 @@ export function EmailTemplateEditor({
         <p className="text-muted-foreground text-xs font-medium">套用範例資料後的預覽（僅供排版確認，非實際寄送內容）</p>
         <div className="bg-card rounded-md border p-3 text-sm">
           <p className="mb-2 font-medium">{renderTemplate(subject, sampleVars)}</p>
-          <p className="text-muted-foreground whitespace-pre-wrap">{renderTemplate(body, sampleVars)}</p>
+          <RichContent html={renderHtmlTemplate(body, sampleVars)} className="text-muted-foreground" />
         </div>
       </div>
     </div>

@@ -20,7 +20,9 @@ export class ResendEmailAdapter implements EmailAdapter {
         from: this.fromAddress,
         to: message.to,
         subject: message.subject,
-        text: message.body,
+        // message.body is HTML now (see EmailBodyEditor) — sending it as `text` would
+        // show raw tags in the recipient's inbox.
+        html: message.body,
       }),
     });
 

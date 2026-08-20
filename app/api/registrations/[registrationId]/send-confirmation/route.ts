@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
-import { renderTemplate } from "@/lib/email/renderTemplate";
+import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import {
   buildRegistrationConfirmationVars,
   DEFAULT_REGISTRATION_CONFIRMATION_SUBJECT,
@@ -69,7 +69,7 @@ export async function POST(
     bodyTemplate: DEFAULT_REGISTRATION_CONFIRMATION_BODY,
   });
   const subject = renderTemplate(template.subjectTemplate, vars);
-  const body = renderTemplate(template.bodyTemplate, vars);
+  const body = renderHtmlTemplate(template.bodyTemplate, vars);
 
   const adapter = getEmailAdapter();
   const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });

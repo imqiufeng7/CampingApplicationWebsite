@@ -24,7 +24,9 @@ export class GmailEmailAdapter implements EmailAdapter {
         from: this.gmailUser,
         to: message.to,
         subject: message.subject,
-        text: message.body,
+        // message.body is HTML now (see EmailBodyEditor) — sending it as `text` would
+        // show raw tags in the recipient's inbox.
+        html: message.body,
       });
       return { status: "sent" };
     } catch (error) {

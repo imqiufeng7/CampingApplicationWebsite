@@ -6,6 +6,8 @@ import type { EmailAdapter, EmailMessage, SendEmailResult } from "@/lib/email/ty
 // Resend API key exists.
 export class ConsoleEmailAdapter implements EmailAdapter {
   async sendEmail(message: EmailMessage): Promise<SendEmailResult> {
+    // message.body is HTML now (see EmailBodyEditor) — logged as-is, readable enough
+    // for local debugging without a real provider configured.
     console.log(
       `[email:console] to=${message.to} subject=${message.subject}\n${message.body}`
     );

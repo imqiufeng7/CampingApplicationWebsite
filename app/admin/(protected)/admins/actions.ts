@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/guards";
 import { getEmailAdapter } from "@/lib/email";
 import { getGlobalEmailTemplate } from "@/lib/email/getTemplate";
-import { renderTemplate } from "@/lib/email/renderTemplate";
+import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import {
   buildAdminInviteVars,
   DEFAULT_ADMIN_INVITE_SUBJECT,
@@ -80,7 +80,7 @@ async function sendAccountSetupLink(
   const sendResult = await adapter.sendEmail({
     to: email,
     subject: renderTemplate(template.subjectTemplate, vars),
-    body: renderTemplate(template.bodyTemplate, vars),
+    body: renderHtmlTemplate(template.bodyTemplate, vars),
   });
 
   if (sendResult.status !== "sent") {

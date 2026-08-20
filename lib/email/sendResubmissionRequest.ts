@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
-import { renderTemplate } from "@/lib/email/renderTemplate";
+import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import {
   buildResubmissionRequestVars,
   DEFAULT_RESUBMISSION_REQUEST_SUBJECT,
@@ -64,7 +64,7 @@ export async function sendResubmissionRequestEmail(
     bodyTemplate: DEFAULT_RESUBMISSION_REQUEST_BODY,
   });
   const subject = renderTemplate(template.subjectTemplate, vars);
-  const body = renderTemplate(template.bodyTemplate, vars);
+  const body = renderHtmlTemplate(template.bodyTemplate, vars);
 
   const adapter = getEmailAdapter();
   const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ReviewPanel } from "@/components/admin/ReviewPanel";
 import { PaymentPanel } from "@/components/admin/PaymentPanel";
 import { MemberReviewRow } from "@/components/admin/MemberReviewRow";
+import { RichContent } from "@/components/public-form/RichContent";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { sortRegistrationsForReview } from "@/lib/reviewSort";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
@@ -247,7 +248,7 @@ export default async function RegistrationDetailPage({
                 </summary>
                 <div className="mt-2 grid gap-1 text-sm">
                   {log.subject && <p className="font-medium">主旨：{log.subject}</p>}
-                  {log.body && <p className="whitespace-pre-wrap">{log.body}</p>}
+                  {log.body && <RichContent html={log.body} />}
                   {log.error_message && <p className="text-destructive">錯誤：{log.error_message}</p>}
                 </div>
               </details>

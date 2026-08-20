@@ -3,7 +3,7 @@ import { requireAdmin, requireFieldEditable, requireSessionAccess, ForbiddenErro
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
-import { renderTemplate } from "@/lib/email/renderTemplate";
+import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import {
   buildReviewResultVars,
   reviewResultEmailType,
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     const emailType = reviewResultEmailType(registration.admission_status);
     const template = registration.admission_status === "備取" ? waitlistedTemplate : admittedTemplate;
     const subject = renderTemplate(template.subjectTemplate, vars);
-    const emailBody = renderTemplate(template.bodyTemplate, vars);
+    const emailBody = renderHtmlTemplate(template.bodyTemplate, vars);
 
     const result = await adapter.sendEmail({
       to: registration.contact_email,
