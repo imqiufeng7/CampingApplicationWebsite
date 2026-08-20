@@ -1,4 +1,5 @@
 import { AdminThemeBody } from "@/components/admin/AdminThemeBody";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
     <div className="theme-admin bg-background text-foreground min-h-screen">
       <AdminThemeBody />
       {children}
+      <ScrollToTopButton />
     </div>
   );
 }

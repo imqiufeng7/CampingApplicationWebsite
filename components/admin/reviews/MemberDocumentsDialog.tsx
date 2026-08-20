@@ -388,7 +388,18 @@ export function MemberDocumentsDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
+      onOpenChange={(v, eventDetails) => {
+        // Swapping the fee-review control to a proper Select (see MemberFeeReviewForm)
+        // didn't stop the dialog from closing on update — it kept happening via
+        // "outside-press"/"focus-out" reasons, most likely triggered by the toast
+        // notification (rendered in its own portal outside this dialog's DOM) or some
+        // other transient focus shift during the update, not an actual user gesture
+        // aimed at the dialog itself. Only real close intents — Escape, the X button,
+        // or the trigger button — should be allowed through; a genuine outside click on
+        // the backdrop unfortunately gets filtered out too, but Escape/X still work.
+        if (!v && (eventDetails.reason === "outside-press" || eventDetails.reason === "focus-out")) {
+          return;
+        }
         setOpen(v);
         if (v) setSelectedMemberId(members[0]?.id ?? null);
       }}

@@ -10,7 +10,7 @@ import { ensureHtml } from "@/lib/contentHtml";
 import { Button } from "@/components/ui/button";
 import { BoldIcon, ItalicIcon, UnderlineIcon } from "lucide-react";
 
-const COLORS = ["#000000", "#dc2626", "#2563eb", "#16a34a", "#d97706", "#7c3aed"];
+const COLORS = ["#000000", "#6b7280", "#dc2626", "#2563eb", "#16a34a", "#d97706", "#7c3aed"];
 
 // Trimmed-down sibling of RichTextEditor.tsx — email bodies only need bold/italic/
 // underline/color (no images, lists, or indent — nothing in the send pipeline
