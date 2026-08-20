@@ -12,7 +12,7 @@ export default async function AdminsPage() {
   const [{ data: adminUsers }, { data: sessions }, { data: roles }] = await Promise.all([
     supabase
       .from("admin_users")
-      .select("id, email, name, role_id, managed_session_ids, activated_at")
+      .select("id, email, name, role_id, managed_session_ids")
       .order("created_at", { ascending: true }),
     supabase.from("event_sessions").select("id, name").order("created_at", { ascending: false }),
     supabase.from("admin_roles").select("id, key, label").order("is_system", { ascending: false }),

@@ -18,6 +18,7 @@ function formatTaipei(iso: string): string {
   return new Date(iso).toLocaleString("zh-TW", {
     dateStyle: "medium",
     timeStyle: "short",
+    hour12: false,
     timeZone: TAIPEI_TIME_ZONE,
   });
 }
@@ -34,7 +35,6 @@ export function AdminUserRow({
     name: string | null;
     role_id: string;
     managed_session_ids: string[];
-    activated_at: string | null;
   };
   sessions: { id: string; name: string }[];
   roles: { id: string; key: string; label: string }[];
@@ -76,12 +76,11 @@ export function AdminUserRow({
           </p>
           <p className="text-muted-foreground text-sm">{adminUser.email}</p>
           <p className="text-muted-foreground text-sm">
-            {adminUser.activated_at ? (
-              <>✅ 已完成密碼設定（{formatTaipei(adminUser.activated_at)}）</>
+            {lastSignInAt ? (
+              <>最後上線時間：{formatTaipei(lastSignInAt)}</>
             ) : (
               <span className="text-destructive">⏳ 尚未完成密碼設定</span>
             )}
-            {lastSignInAt && <> · 最後登入：{formatTaipei(lastSignInAt)}</>}
           </p>
           {sessionNames.length > 0 && (
             <p className="text-muted-foreground text-sm">可管理場次：{sessionNames.join("、")}</p>

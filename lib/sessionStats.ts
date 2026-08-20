@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
+import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
 // Derived from status + dates rather than the raw draft/open/closed/archived enum —
 // what an admin actually wants to know at a glance is whether people can still
@@ -19,8 +20,18 @@ export function deriveStatusLabel(
 
 export function formatDateRange(start: string | null, end: string | null): string {
   if (!start) return "尚未設定活動時間";
+  // Missing timeZone was a real bug, not just a 12/24-hour formatting nit — without
+  // it this falls back to the server process's own local time (UTC on Vercel), which
+  // would silently show every session's date range 8 hours off from Taipei time.
   const fmt = (s: string) =>
-    new Date(s).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    new Date(s).toLocaleString("zh-TW", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: TAIPEI_TIME_ZONE,
+    });
   return end ? `${fmt(start)} - ${fmt(end)}` : fmt(start);
 }
 

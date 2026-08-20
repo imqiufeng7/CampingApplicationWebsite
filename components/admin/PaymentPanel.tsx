@@ -210,6 +210,7 @@ export function PaymentPanel({
               {new Date(registration.payment_deadline).toLocaleString("zh-TW", {
                 dateStyle: "medium",
                 timeStyle: "short",
+                hour12: false,
                 timeZone: TAIPEI_TIME_ZONE,
               })}
               {deadlinePassed && <span className="text-destructive ml-2 font-medium">已逾期</span>}

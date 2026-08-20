@@ -123,6 +123,7 @@ export default async function PaymentListPage({
                         {new Date(r.payment_deadline).toLocaleString("zh-TW", {
                           dateStyle: "medium",
                           timeStyle: "short",
+                          hour12: false,
                           timeZone: TAIPEI_TIME_ZONE,
                         })}
                         {r.payment_status === "待繳費" && new Date(r.payment_deadline).getTime() < now && (

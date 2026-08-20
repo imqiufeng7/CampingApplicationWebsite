@@ -49,7 +49,7 @@ export function ActivityLogFeed({ entries }: { entries: ActivityLogEntry[] }) {
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{a.admin_email ?? "未知使用者"}</span>
               <span className="text-muted-foreground text-xs whitespace-nowrap">
-                {new Date(a.created_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })}
+                {new Date(a.created_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE })}
               </span>
             </div>
             <p className="text-muted-foreground mt-1">{a.summary}</p>

@@ -328,7 +328,7 @@ export function ReviewTable({
           header: "報名時間",
           accessorFn: (r) => r.submitted_at,
           cell: ({ row }) =>
-            new Date(row.original.submitted_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE }),
+            new Date(row.original.submitted_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE }),
         },
         {
           id: "contact",

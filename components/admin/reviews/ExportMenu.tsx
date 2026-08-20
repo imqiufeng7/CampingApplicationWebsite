@@ -80,7 +80,7 @@ export function ExportMenu({
     ];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
-      new Date(r.submitted_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE }),
+      new Date(r.submitted_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE }),
       r.contact_email,
       excelText(r.contact_phone),
       categoryLabel(r),

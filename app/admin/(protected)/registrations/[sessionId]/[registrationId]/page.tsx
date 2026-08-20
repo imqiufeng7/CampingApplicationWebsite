@@ -241,7 +241,7 @@ export default async function RegistrationDetailPage({
             {(emailLogs ?? []).map((log) => (
               <details key={log.id} className="rounded-lg border p-3">
                 <summary className="cursor-pointer text-sm">
-                  {new Date(log.created_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })} · {log.type} ·{" "}
+                  {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE })} · {log.type} ·{" "}
                   <span className={log.status === "sent" ? "text-foreground" : "text-destructive"}>
                     {log.status === "sent" ? "已寄送" : log.status === "failed" ? "寄送失敗" : "處理中"}
                   </span>

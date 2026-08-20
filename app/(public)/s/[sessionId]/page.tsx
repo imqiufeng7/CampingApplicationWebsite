@@ -41,11 +41,11 @@ export default async function PublicRegistrationPage({
         <p className="text-muted-foreground mt-2 text-sm">
           報名時間：
           {session.registration_open_at
-            ? new Date(session.registration_open_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })
+            ? new Date(session.registration_open_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE })
             : "未設定"}{" "}
           ~{" "}
           {session.registration_close_at
-            ? new Date(session.registration_close_at).toLocaleString("zh-TW", { timeZone: TAIPEI_TIME_ZONE })
+            ? new Date(session.registration_close_at).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE })
             : "未設定"}
         </p>
       </div>
