@@ -95,6 +95,9 @@ export function BannerUploadField({
   return (
     <div className="grid gap-2">
       <Label htmlFor="banner">活動視覺 Banner</Label>
+      <p className="text-muted-foreground text-xs">
+        報名頁面會以寬:高 = 3:1 的比例裁切置中顯示，建議上傳至少 1200×400 像素、3:1 比例的圖片，避免上傳直式或正方形圖片被裁掉重要內容。支援 JPG / PNG / WebP。
+      </p>
       {bannerImagePath && (
         <div className="grid gap-2">
           <div className="relative h-40 w-full max-w-md overflow-hidden rounded-lg border">
