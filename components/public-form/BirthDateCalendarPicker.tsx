@@ -37,6 +37,11 @@ export function BirthDateCalendarPicker({
   onMonthChange,
   onDayChange,
 }: {
+  // react-hook-form's actual runtime value for an unset numeric field is "" (from
+  // the form's defaultValues), not undefined, despite what this type claims — `??`
+  // only falls back on null/undefined, so `year ?? 95` silently kept "" as the
+  // view year (then `"" + 1911` string-concatenates into garbage). year/month/day
+  // are never legitimately 0, so `||` is the correct fallback operator here.
   year: number | undefined;
   month: number | undefined;
   day: number | undefined;
@@ -47,8 +52,8 @@ export function BirthDateCalendarPicker({
   const [open, setOpen] = useState(false);
   // View state defaults to the selected date if there is one, otherwise a
   // reasonable middle-of-range year so the grid isn't scrolled to either extreme.
-  const [viewYear, setViewYear] = useState(year ?? 95);
-  const [viewMonth, setViewMonth] = useState(month ?? 1);
+  const [viewYear, setViewYear] = useState(year || 95);
+  const [viewMonth, setViewMonth] = useState(month || 1);
 
   const gregorianViewYear = viewYear + ROC_OFFSET;
   const totalDays = daysInMonth(gregorianViewYear, viewMonth);
@@ -56,8 +61,8 @@ export function BirthDateCalendarPicker({
 
   function handleOpenChange(next: boolean) {
     if (next) {
-      setViewYear(year ?? 95);
-      setViewMonth(month ?? 1);
+      setViewYear(year || 95);
+      setViewMonth(month || 1);
     }
     setOpen(next);
   }

@@ -213,13 +213,7 @@ export function RichTextEditor({
           variant="ghost"
           size="icon-sm"
           title="增加縮排"
-          onClick={() => {
-            if (editor.isActive("listItem")) {
-              editor.chain().focus().sinkListItem("listItem").run();
-            } else {
-              editor.chain().focus().indent().run();
-            }
-          }}
+          onClick={() => editor.chain().focus().indent().run()}
         >
           <IndentIncreaseIcon />
         </Button>
@@ -228,13 +222,7 @@ export function RichTextEditor({
           variant="ghost"
           size="icon-sm"
           title="減少縮排"
-          onClick={() => {
-            if (editor.isActive("listItem")) {
-              editor.chain().focus().liftListItem("listItem").run();
-            } else {
-              editor.chain().focus().outdent().run();
-            }
-          }}
+          onClick={() => editor.chain().focus().outdent().run()}
         >
           <IndentDecreaseIcon />
         </Button>

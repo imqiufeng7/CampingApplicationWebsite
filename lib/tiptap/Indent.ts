@@ -26,7 +26,14 @@ export const Indent = Extension.create<IndentOptions>({
 
   addOptions() {
     return {
-      types: ["paragraph", "heading"],
+      // listItem included so indenting inside a list just shifts the whole <li> (and
+      // its marker) right via margin, rather than going through sinkListItem/
+      // liftListItem — nesting a real sub-list turned out to not reliably show its
+      // own marker in the live editor (ProseMirror/TipTap's default nested-list CSS
+      // interaction is finicky), so the indented item's number/bullet would
+      // disappear until the page was saved and reloaded. A margin shift can't lose
+      // the marker: it's still the same list item, just moved.
+      types: ["paragraph", "heading", "listItem"],
       minLevel: 0,
       maxLevel: 8,
       stepEm: 2,

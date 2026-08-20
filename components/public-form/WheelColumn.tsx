@@ -14,12 +14,15 @@ export function WheelColumn({
   initialIndex,
 }: {
   options: { value: number; label: string }[];
+  // react-hook-form's actual runtime value for an unset numeric field is "" (an
+  // empty string from the form's defaultValues), not undefined, despite what this
+  // type claims — a plain `=== undefined` check silently never matches. hasValue
+  // below is the one place that needs to know the real story.
   value: number | undefined;
   onChange: (value: number) => void;
   ariaLabel: string;
   // Scroll position to land on before the registrant has picked anything (e.g. the
-  // middle of the most common birth-year range) — purely visual, doesn't set value,
-  // so the field stays empty/required until an actual choice is made.
+  // middle of the most common birth-year range).
   initialIndex?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +30,8 @@ export function WheelColumn({
   const isProgrammaticScroll = useRef(false);
   const didInitRef = useRef(false);
 
-  const selectedIndex = value !== undefined ? options.findIndex((o) => o.value === value) : -1;
+  const hasValue = value !== undefined && value !== null && (value as unknown) !== "";
+  const selectedIndex = hasValue ? options.findIndex((o) => o.value === value) : -1;
 
   // Keep the wheel's scroll position in sync when `value` changes from outside
   // (e.g. loading existing data into the edit form) — guarded so the resulting
@@ -51,6 +55,23 @@ export function WheelColumn({
       didInitRef.current = true;
     }
   }, [selectedIndex, initialIndex]);
+
+  // Commits whatever's already centered as the real value on mount, rather than
+  // waiting for the registrant to scroll. Without this, a value that happens to
+  // already match the default position (e.g. someone born in January never needs to
+  // touch the month wheel, since "1 月" is already showing) never fires onChange at
+  // all — the field silently stays unset even though the correct value was visibly
+  // selected the whole time.
+  useEffect(() => {
+    if (!hasValue) {
+      const option = options[initialIndex ?? 0];
+      if (option) onChange(option.value);
+    }
+    // Mount-only: this establishes the starting value once. `value` afterwards is
+    // owned by the parent form, and options/onChange are stable enough in practice
+    // that re-running this on every identity change would fight the user's own edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleScroll() {
     if (isProgrammaticScroll.current) {
