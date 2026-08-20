@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
   const { data: session } = await admin
     .from("event_sessions")
-    .select("name")
+    .select("name, date_start, date_end")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -107,6 +107,8 @@ export async function POST(request: Request) {
 
     const vars = buildReviewResultVars({
       sessionName: session?.name ?? "",
+      sessionDateStart: session?.date_start ?? null,
+      sessionDateEnd: session?.date_end ?? null,
       admissionStatus: registration.admission_status,
       waitlistRank: registration.waitlist_rank,
       members: (members ?? []).map((m) => ({

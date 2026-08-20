@@ -1,5 +1,5 @@
 import type { AdmissionStatus, EmailType, PaymentMethod } from "@/lib/db/types";
-import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { TAIPEI_TIME_ZONE, formatSessionDateWithWeekday } from "@/lib/timezone";
 
 // 正取/備取 get independently-editable templates (see
 // supabase/migrations/20260820110001_split_review_result_templates.sql) — this picks
@@ -18,6 +18,8 @@ export interface ReviewResultMemberInfo {
 
 export interface ReviewResultEmailInput {
   sessionName: string;
+  sessionDateStart: string | null;
+  sessionDateEnd: string | null;
   admissionStatus: AdmissionStatus;
   waitlistRank: number | null;
   members: ReviewResultMemberInfo[];
@@ -101,6 +103,8 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
 
   return {
     活動名稱: input.sessionName,
+    活動日期: formatSessionDateWithWeekday(input.sessionDateStart, input.sessionDateEnd),
+    第一位成員姓名: input.members[0]?.name ?? "",
     錄取結果: admissionLine,
     成員審核結果: memberLines,
     繳費資訊: paymentLines,

@@ -44,3 +44,27 @@ export function taipeiInputValueToIso(value: string | null | undefined): string 
   if (!value || !value.trim()) return null;
   return `${value}:00+08:00`;
 }
+
+const WEEKDAY_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
+
+// event_sessions.date_start/date_end are plain SQL `date` columns — no time-of-day,
+// no timezone — so there's no Taipei-offset conversion to do here (unlike the
+// timestamptz helpers above); parsing as UTC midnight just keeps the weekday
+// calculation from being affected by whatever timezone the Node process runs in.
+function formatDateWithWeekday(dateOnly: string): string {
+  const d = new Date(`${dateOnly}T00:00:00Z`);
+  const weekday = WEEKDAY_LABELS[d.getUTCDay()];
+  return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(星期${weekday})`;
+}
+
+// "活動日期(含星期)" for emails — e.g. "11月15日(星期六)至11月16日(星期日)", or a single
+// date if there's no end date (or start/end are the same day).
+export function formatSessionDateWithWeekday(
+  dateStart: string | null,
+  dateEnd: string | null
+): string {
+  if (!dateStart) return "";
+  const start = formatDateWithWeekday(dateStart);
+  if (!dateEnd || dateEnd === dateStart) return start;
+  return `${start}至${formatDateWithWeekday(dateEnd)}`;
+}

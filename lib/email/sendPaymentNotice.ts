@@ -35,7 +35,7 @@ export async function sendPaymentNoticeEmail(
 
   const { data: session } = await admin
     .from("event_sessions")
-    .select("name")
+    .select("name, date_start, date_end")
     .eq("id", registration.session_id)
     .maybeSingle();
 
@@ -64,6 +64,8 @@ export async function sendPaymentNoticeEmail(
 
   const vars = buildReviewResultVars({
     sessionName: session?.name ?? "",
+    sessionDateStart: session?.date_start ?? null,
+    sessionDateEnd: session?.date_end ?? null,
     admissionStatus: registration.admission_status,
     waitlistRank: registration.waitlist_rank,
     members: (members ?? []).map((m) => ({

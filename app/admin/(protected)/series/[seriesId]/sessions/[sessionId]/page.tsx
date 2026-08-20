@@ -22,12 +22,12 @@ const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: strin
   {
     type: "審核結果-正取",
     label: "錄取通知/繳費通知（正取，後台批次寄送）",
-    placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+    placeholders: ["活動名稱", "活動日期", "第一位成員姓名", "錄取結果", "成員審核結果", "繳費資訊"],
   },
   {
     type: "審核結果-備取",
     label: "備取通知（備取，後台批次寄送）",
-    placeholders: ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
+    placeholders: ["活動名稱", "活動日期", "第一位成員姓名", "錄取結果", "成員審核結果", "繳費資訊"],
   },
   {
     type: "退回補件",
