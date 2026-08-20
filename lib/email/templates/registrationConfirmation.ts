@@ -15,7 +15,7 @@ export interface RegistrationConfirmationEmailInput {
 // that row was somehow deleted (getEmailTemplate's last resort).
 export const DEFAULT_REGISTRATION_CONFIRMATION_SUBJECT =
   "【{{活動名稱}}】報名資料確認（編號 {{報名編號}}）";
-export const DEFAULT_REGISTRATION_CONFIRMATION_BODY = `您好，以下是您的報名資料副本：
+export const DEFAULT_REGISTRATION_CONFIRMATION_BODY = `{{第一位成員姓名}} 您好，以下是您的報名資料副本：
 
 活動場次：{{活動名稱}}
 報名編號：{{報名編號}}
@@ -45,6 +45,7 @@ export function buildRegistrationConfirmationVars(
     報名編號: input.registrationNo,
     聯絡Email: input.contactEmail,
     聯絡電話: input.contactPhone,
+    第一位成員姓名: input.members[0]?.name ?? "",
     成員名單: input.members.map((m, i) => `${i + 1}. ${m.name}`).join("\n"),
     修改連結: input.editUrl,
   };

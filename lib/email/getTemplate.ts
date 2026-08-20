@@ -38,3 +38,22 @@ export async function getEmailTemplate(
 
   return fallback;
 }
+
+// For email types with no session context at all (e.g. 管理員邀請 — inviting someone
+// to the admin team isn't tied to any event_sessions row), so there's no per-session
+// override tier to check, unlike getEmailTemplate above.
+export async function getGlobalEmailTemplate(
+  admin: SupabaseClient<Database>,
+  type: EmailType,
+  fallback: EmailTemplateText
+): Promise<EmailTemplateText> {
+  const { data: global } = await admin
+    .from("email_templates")
+    .select("subject_template, body_template")
+    .eq("type", type)
+    .maybeSingle();
+  if (global) {
+    return { subjectTemplate: global.subject_template, bodyTemplate: global.body_template };
+  }
+  return fallback;
+}

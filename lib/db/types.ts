@@ -26,7 +26,8 @@ export type EmailType =
   | "報到QR"
   | "遞補通知"
   | "報名確認"
-  | "退回補件";
+  | "退回補件"
+  | "管理員邀請";
 export type EmailStatus = "pending" | "sent" | "failed";
 
 export interface Database {

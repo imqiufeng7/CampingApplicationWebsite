@@ -14,13 +14,15 @@ const TYPE_LABELS: Record<EmailType, string> = {
   場次資訊: "場次資訊",
   報到QR: "報到 QR",
   遞補通知: "遞補通知",
+  管理員邀請: "管理員邀請信（新增管理員帳號或重寄邀請時寄出）",
 };
 
 const PLACEHOLDERS: Partial<Record<EmailType, string[]>> = {
-  報名確認: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "成員名單", "修改連結"],
+  報名確認: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "第一位成員姓名", "成員名單", "修改連結"],
   "審核結果-正取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   "審核結果-備取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   退回補件: ["活動名稱", "報名編號", "補件原因", "修改連結"],
+  管理員邀請: ["角色", "設定連結"],
 };
 
 // Sample data so the vendor can preview layout without needing a real registration —
@@ -31,6 +33,7 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
     報名編號: "R000123",
     聯絡Email: "example@mail.com",
     聯絡電話: "0912-345-678",
+    第一位成員姓名: "王小明",
     成員名單: "1. 王小明\n2. 陳小華",
     修改連結: "https://example.com/edit/abc123",
   },
@@ -52,14 +55,26 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
     補件原因: "王小明的證件照片模糊，請重新上傳清晰版本",
     修改連結: "https://example.com/edit/abc123",
   },
+  管理員邀請: {
+    角色: "場地管理員",
+    設定連結: "https://example.com/admin/accept-invite?token_hash=abc123&type=invite",
+  },
 };
 
 // Only these types have send-triggering code today (see the email_templates
 // migration's comment) — the other EmailType values are reachable in email_logs but
 // have nothing yet that would use a template for them. 審核結果 (the old single
 // template both statuses used to share) is intentionally excluded — 審核結果-正取/
-// -備取 replaced it (see 20260820110001_split_review_result_templates.sql).
-const EDITABLE_TYPES: EmailType[] = ["報名確認", "審核結果-正取", "審核結果-備取", "退回補件"];
+// -備取 replaced it (see 20260820110001_split_review_result_templates.sql). 管理員邀請
+// isn't logged to email_logs at all (see 20260820150001_admin_invite_email_template.sql)
+// since it has no registration_id to attach a log row to.
+const EDITABLE_TYPES: EmailType[] = [
+  "報名確認",
+  "審核結果-正取",
+  "審核結果-備取",
+  "退回補件",
+  "管理員邀請",
+];
 
 export default async function EmailTemplatesPage() {
   await requireRole("vendor");

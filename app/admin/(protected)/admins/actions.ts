@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/guards";
 import { getEmailAdapter } from "@/lib/email";
+import { getGlobalEmailTemplate } from "@/lib/email/getTemplate";
+import { renderTemplate } from "@/lib/email/renderTemplate";
+import {
+  buildAdminInviteVars,
+  DEFAULT_ADMIN_INVITE_SUBJECT,
+  DEFAULT_ADMIN_INVITE_BODY,
+} from "@/lib/email/templates/adminInvite";
 
 export type ActionState = { error: string | null };
 
@@ -62,19 +69,17 @@ async function sendAccountSetupLink(
   // URLs, they don't click buttons.
   const setupUrl = `${redirectTo}?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${linkData.properties.verification_type}`;
 
+  const vars = buildAdminInviteVars({ roleLabel, setupUrl });
+  const template = await getGlobalEmailTemplate(admin, "管理員邀請", {
+    subjectTemplate: DEFAULT_ADMIN_INVITE_SUBJECT,
+    bodyTemplate: DEFAULT_ADMIN_INVITE_BODY,
+  });
+
   const adapter = getEmailAdapter();
   const sendResult = await adapter.sendEmail({
     to: email,
-    subject: "【報名系統後台】您已受邀加入管理團隊",
-    body: `您好，
-
-您已被邀請加入報名系統後台，角色為「${roleLabel}」。
-
-請點擊以下連結設定登入密碼並開始使用：
-${setupUrl}
-
-請妥善保存此連結，勿轉發給他人。若非本人申請，請忽略此信。
-`,
+    subject: renderTemplate(template.subjectTemplate, vars),
+    body: renderTemplate(template.bodyTemplate, vars),
   });
 
   if (sendResult.status !== "sent") {

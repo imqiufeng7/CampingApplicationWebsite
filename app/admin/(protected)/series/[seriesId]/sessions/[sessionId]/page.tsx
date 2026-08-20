@@ -17,7 +17,7 @@ const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: strin
   {
     type: "報名確認",
     label: "報名確認信（送出報名後立即寄出）",
-    placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "成員名單", "修改連結"],
+    placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "第一位成員姓名", "成員名單", "修改連結"],
   },
   {
     type: "審核結果-正取",
