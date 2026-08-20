@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { TextStyle } from "@tiptap/extension-text-style";
@@ -38,6 +38,30 @@ const EXTENSION_BY_TYPE: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+// Content typed as plain paragraphs commonly uses a blank paragraph as visual spacing
+// between items (e.g. manually-numbered "一、..." / "二、..." lines with a blank line
+// between each). Converting a selection like that straight to a list would wrap each
+// blank spacer as its own empty <li> too — every real item's list-rendered number then
+// drifts further off from whatever number is already typed in its text, and the
+// spacers show up as blank bullets. Deleting empty paragraphs from the selection right
+// before toggling a list keeps the numbering aligned with what's actually there.
+function removeEmptyParagraphsInSelection(editor: Editor) {
+  const { state } = editor;
+  const { from, to } = state.selection;
+  const ranges: { from: number; to: number }[] = [];
+  state.doc.nodesBetween(from, to, (node, pos) => {
+    if (node.type.name === "paragraph" && node.content.size === 0) {
+      ranges.push({ from: pos, to: pos + node.nodeSize });
+    }
+  });
+  if (ranges.length === 0) return;
+  let tr = state.tr;
+  for (let i = ranges.length - 1; i >= 0; i--) {
+    tr = tr.delete(ranges[i].from, ranges[i].to);
+  }
+  editor.view.dispatch(tr);
+}
 
 export function RichTextEditor({
   name,
@@ -135,7 +159,10 @@ export function RichTextEditor({
           variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
           size="icon-sm"
           title="項目符號"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() => {
+            if (!editor.isActive("bulletList")) removeEmptyParagraphsInSelection(editor);
+            editor.chain().focus().toggleBulletList().run();
+          }}
         >
           <ListIcon />
         </Button>
@@ -152,6 +179,7 @@ export function RichTextEditor({
               // the list off, since that's what clicking "switch to 1.2.3" means here.
               editor.chain().focus().setOrderedListStyle(null).run();
             } else {
+              if (!editor.isActive("orderedList")) removeEmptyParagraphsInSelection(editor);
               editor.chain().focus().toggleOrderedList().run();
             }
           }}
@@ -172,6 +200,7 @@ export function RichTextEditor({
               // Already an ordered list showing 1.2.3 — switch style, keep it on.
               editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
             } else {
+              removeEmptyParagraphsInSelection(editor);
               editor.chain().focus().toggleOrderedList().run();
               editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
             }
