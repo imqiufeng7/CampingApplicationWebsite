@@ -47,10 +47,14 @@ export function BannerUploadField({
     setUploading(true);
     try {
       const supabase = createClient();
-      const path = `${sessionId}/banner.${extension}`;
+      // A fresh, unique path per upload — the old fixed "banner.ext" path never
+      // changed across uploads, so even though upsert did overwrite the file
+      // server-side, the URL was identical every time and the browser/CDN/Next Image
+      // cache kept serving the previous banner's bytes for it.
+      const path = `${sessionId}/banner-${Date.now()}.${extension}`;
       const { error: uploadError } = await supabase.storage
         .from("session-assets")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, file, { contentType: file.type });
 
       if (uploadError) {
         toast.error(uploadError.message);
@@ -61,6 +65,10 @@ export function BannerUploadField({
       if (result.error) {
         toast.error(result.error);
         return;
+      }
+
+      if (bannerImagePath) {
+        await supabase.storage.from("session-assets").remove([bannerImagePath]);
       }
 
       toast.success("Banner 已更新");
@@ -76,6 +84,10 @@ export function BannerUploadField({
     if (result.error) {
       toast.error(result.error);
       return;
+    }
+    if (bannerImagePath) {
+      const supabase = createClient();
+      await supabase.storage.from("session-assets").remove([bannerImagePath]);
     }
     router.refresh();
   }

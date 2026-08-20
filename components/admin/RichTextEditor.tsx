@@ -9,7 +9,7 @@ import Color from "@tiptap/extension-color";
 import Image from "@tiptap/extension-image";
 import { FontSize } from "@/lib/tiptap/FontSize";
 import { Indent } from "@/lib/tiptap/Indent";
-import { OrderedListStyle } from "@/lib/tiptap/OrderedListStyle";
+import { OrderedListStyle, CJK_ORDERED_LIST_STYLE } from "@/lib/tiptap/OrderedListStyle";
 import { ensureHtml } from "@/lib/contentHtml";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -174,7 +174,7 @@ export function RichTextEditor({
           size="icon-sm"
           title="數字清單（1. 2. 3.）"
           onClick={() => {
-            if (editor.isActive("orderedList", { listStyleType: "cjk-decimal" })) {
+            if (editor.isActive("orderedList", { listStyleType: CJK_ORDERED_LIST_STYLE })) {
               // Currently showing Chinese numerals — switch style instead of turning
               // the list off, since that's what clicking "switch to 1.2.3" means here.
               editor.chain().focus().setOrderedListStyle(null).run();
@@ -189,20 +189,20 @@ export function RichTextEditor({
         <Button
           type="button"
           variant={
-            editor.isActive("orderedList", { listStyleType: "cjk-decimal" }) ? "secondary" : "ghost"
+            editor.isActive("orderedList", { listStyleType: CJK_ORDERED_LIST_STYLE }) ? "secondary" : "ghost"
           }
           size="sm"
           title="中文數字清單（一、二、三、）"
           onClick={() => {
-            if (editor.isActive("orderedList", { listStyleType: "cjk-decimal" })) {
+            if (editor.isActive("orderedList", { listStyleType: CJK_ORDERED_LIST_STYLE })) {
               editor.chain().focus().toggleOrderedList().run();
             } else if (editor.isActive("orderedList")) {
               // Already an ordered list showing 1.2.3 — switch style, keep it on.
-              editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
+              editor.chain().focus().setOrderedListStyle(CJK_ORDERED_LIST_STYLE).run();
             } else {
               removeEmptyParagraphsInSelection(editor);
               editor.chain().focus().toggleOrderedList().run();
-              editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
+              editor.chain().focus().setOrderedListStyle(CJK_ORDERED_LIST_STYLE).run();
             }
           }}
         >
