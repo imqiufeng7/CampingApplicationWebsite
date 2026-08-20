@@ -1,5 +1,5 @@
 import type { AdmissionStatus, EmailType, PaymentMethod } from "@/lib/db/types";
-import { TAIPEI_TIME_ZONE, formatSessionDateWithWeekday } from "@/lib/timezone";
+import { formatSessionDateWithWeekday, formatDeadlineRocWithWeekday } from "@/lib/timezone";
 
 // 正取/備取 get independently-editable templates (see
 // supabase/migrations/20260820110001_split_review_result_templates.sql) — this picks
@@ -23,6 +23,11 @@ export interface ReviewResultEmailInput {
   admissionStatus: AdmissionStatus;
   waitlistRank: number | null;
   members: ReviewResultMemberInfo[];
+  // Flat per-paying-member fee (event_sessions.fee_discount_per_person) — the same
+  // figure fn_recompute_registration_payment multiplies by the paying-member count to
+  // get registrations.payment_amount, so summing each member's own amount here always
+  // matches paymentAmount below.
+  feeDiscountPerPerson: number;
   paymentAmount: number;
   paymentMethod: PaymentMethod | null;
   paymentDeadline: string | null;
@@ -49,18 +54,19 @@ export const DEFAULT_REVIEW_RESULT_BODY = `{{錄取結果}}
 {{繳費資訊}}
 `;
 
-// 系統自動組成逐人結果描述文字，例如「OOO，符合免付費申請資格，無需繳交報名費」
-function describeMember(m: ReviewResultMemberInfo): string {
+// 系統自動組成逐人結果描述文字，第一位成員標示為「聯絡人(成員1)」，其餘依序「成員2」
+// 「成員3」...。付費與否採跟 fn_recompute_registration_payment 一致的二分法——
+// fee_review_result 是「無需繳費」才算免繳，其餘（需繳費／審核中等）一律視為需繳交這
+// 筆固定金額，兩者才不會兜不起來。
+function describeMember(m: ReviewResultMemberInfo, index: number, feeDiscountPerPerson: number): string {
+  const label = index === 0 ? "聯絡人(成員1)" : `成員${index + 1}`;
   if (!m.feeCategoryLabel) {
-    return `${m.name}：一般報名`;
+    return `${label}：${m.name}，未申請免付費申請資格，需繳報名費${feeDiscountPerPerson}元`;
   }
   if (m.feeReviewResult === "無需繳費") {
-    return `${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`;
+    return `${label}：${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`;
   }
-  if (m.feeReviewResult === "需繳費") {
-    return `${m.name}，${m.feeCategoryLabel}資格審核結果為需繳費`;
-  }
-  return `${m.name}，${m.feeCategoryLabel}資格${m.feeReviewResult}`;
+  return `${label}：${m.name}，未符合${m.feeCategoryLabel}申請資格，需繳報名費${feeDiscountPerPerson}元`;
 }
 
 // System-computed values the vendor-editable template text can't express (branches
@@ -75,7 +81,16 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
         ? `您目前為備取名單，備取順位第 ${input.waitlistRank ?? "-"} 位，若有名額釋出將另行通知。`
         : "審核結果請見以下說明。";
 
-  const memberLines = input.members.map(describeMember).join("\n");
+  const memberLines = input.members
+    .map((m, i) => describeMember(m, i, input.feeDiscountPerPerson))
+    .join("\n");
+  // Only appended when someone actually owes money — every member's own line above
+  // already reads "無需繳交報名費" when the total is zero, so a "共計 0 元" line here
+  // would just be redundant.
+  const memberSection =
+    input.paymentAmount > 0
+      ? `${memberLines}\n您需要繳交的團隊報名費共計${input.paymentAmount}元。`
+      : memberLines;
 
   // 備取/取消 never get payment details — 正取 is confirmed and payment_amount is
   // meaningful right now; a waitlisted registrant's amount is only a projection for
@@ -88,14 +103,14 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     paymentLines = "本次未錄取，無需繳費。";
   } else if (input.paymentAmount > 0) {
     const deadlineLine = input.paymentDeadline
-      ? `\n請於 ${new Date(input.paymentDeadline).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short", timeZone: TAIPEI_TIME_ZONE })} 前完成繳費，逾期未繳將由主辦單位另行處理，如需延長請洽詢主辦單位。`
+      ? `\n繳費期限：${formatDeadlineRocWithWeekday(input.paymentDeadline)} 前`
       : "";
     if (input.paymentMethod === "online" && input.ecpayLink) {
-      paymentLines = `應繳金額：${input.paymentAmount} 元\n請於期限內完成線上繳費：${input.ecpayLink}${deadlineLine}`;
+      paymentLines = `繳費連結：${input.ecpayLink}${deadlineLine}`;
     } else if (input.paymentMethod === "manual") {
-      paymentLines = `應繳金額：${input.paymentAmount} 元\n${input.manualTransferAccountInfo}\n轉帳完成後請回報帳號後五碼。${deadlineLine}`;
+      paymentLines = `${input.manualTransferAccountInfo}\n轉帳完成後請回報帳號後五碼。${deadlineLine}`;
     } else {
-      paymentLines = `應繳金額：${input.paymentAmount} 元，繳費方式將另行通知。${deadlineLine}`;
+      paymentLines = `繳費方式將另行通知。${deadlineLine}`;
     }
   } else {
     paymentLines = "無需繳費。";
@@ -106,7 +121,7 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     活動日期: formatSessionDateWithWeekday(input.sessionDateStart, input.sessionDateEnd),
     第一位成員姓名: input.members[0]?.name ?? "",
     錄取結果: admissionLine,
-    成員審核結果: memberLines,
+    成員審核結果: memberSection,
     繳費資訊: paymentLines,
   };
 }

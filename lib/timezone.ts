@@ -68,3 +68,15 @@ export function formatSessionDateWithWeekday(
   if (!dateEnd || dateEnd === dateStart) return start;
   return `${start}至${formatDateWithWeekday(dateEnd)}`;
 }
+
+// "繳費期限" for 審核結果 emails — e.g. "114年10月31日（星期五）12:00" (ROC year, full-
+// width parens around the weekday — distinct formatting from formatSessionDateWithWeekday
+// above, matching the vendor's own two separate examples exactly). Unlike date_start/
+// date_end, payment_deadline is a real timestamptz with a meaningful time-of-day, so
+// this does go through the Taipei wall-clock conversion.
+export function formatDeadlineRocWithWeekday(iso: string): string {
+  const p = taipeiParts(new Date(iso));
+  const rocYear = p.year - 1911;
+  const weekday = WEEKDAY_LABELS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
+  return `${rocYear}年${p.month}月${p.day}日（星期${weekday}）${pad(p.hour)}:${pad(p.minute)}`;
+}
