@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   updateMemberFeeReview,
   updateMemberResubmission,
   sendResubmissionNotice,
@@ -60,11 +67,12 @@ type FileInfo = { id: string; member_id: string | null; file_type: string };
 const initialState: ActionState = { error: null };
 
 // Called directly (not via <form action={...}>/useActionState like the old
-// single-registration detail page's MemberReviewRow uses this same server action) —
-// a real <form> submit inside this Dialog was closing it on every update, presumably
-// a Base UI outside-interaction/focus quirk triggered by the native submit event.
-// Matches MemberResubmissionForm's already-working pattern just below, which never
-// had this problem because it never used a <form> either.
+// single-registration detail page's MemberReviewRow uses this same server action),
+// matching MemberResubmissionForm's pattern just below. Also uses the Base UI Select
+// component instead of a native <select> — a native select's dropdown renders as an
+// OS-level popup outside Base UI's own portal tracking, and choosing an option from it
+// was closing the whole Dialog (a known category of issue with native selects inside
+// portal-based dialogs: the library reads the interaction as "outside" the dialog).
 function MemberFeeReviewForm({
   sessionId,
   registrationId,
@@ -101,15 +109,16 @@ function MemberFeeReviewForm({
 
   return (
     <div className="flex items-center gap-2">
-      <select
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
-      >
-        <option value="審核中">審核中</option>
-        <option value="需繳費">需繳費</option>
-        <option value="無需繳費">無需繳費</option>
-      </select>
+      <Select value={value} onValueChange={(v) => setValue(v as string)}>
+        <SelectTrigger size="sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="審核中">審核中</SelectItem>
+          <SelectItem value="需繳費">需繳費</SelectItem>
+          <SelectItem value="無需繳費">無需繳費</SelectItem>
+        </SelectContent>
+      </Select>
       <Button type="button" size="sm" variant="outline" disabled={saving} onClick={handleUpdate}>
         {saving ? "更新中..." : "更新"}
       </Button>
