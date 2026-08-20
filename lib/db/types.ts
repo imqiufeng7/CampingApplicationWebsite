@@ -394,6 +394,7 @@ export interface Database {
           summary: string;
           ip_address: string | null;
           reason: string | null;
+          log_type: "change" | "view";
           created_at: string;
         };
         // Only ever inserted by fn_log_registration_change (the change trigger) or

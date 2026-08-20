@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       sessionIds.length
         ? supabase
             .from("admin_activity_log")
-            .select("session_id, admin_email, summary, created_at")
+            .select("session_id, admin_email, summary, created_at, log_type")
             .in("session_id", sessionIds)
             .order("created_at", { ascending: false })
             .limit(1000)
@@ -163,11 +163,16 @@ export default async function DashboardPage() {
     categoryStatsById.set(r.registration_category_id, stat);
   }
 
+  // Split into two feeds — a reviewer opening the documents dialog repeatedly while
+  // working generates far more 身分證 view-log rows than actual field changes, and
+  // interleaving them drowned out the substantive edit history.
   const activityBySession = new Map<string, { admin_email: string | null; summary: string; created_at: string }[]>();
+  const idViewLogBySession = new Map<string, { admin_email: string | null; summary: string; created_at: string }[]>();
   for (const a of activityLog ?? []) {
-    const list = activityBySession.get(a.session_id) ?? [];
+    const target = a.log_type === "view" ? idViewLogBySession : activityBySession;
+    const list = target.get(a.session_id) ?? [];
     list.push(a);
-    activityBySession.set(a.session_id, list);
+    target.set(a.session_id, list);
   }
 
   return (
@@ -182,6 +187,7 @@ export default async function DashboardPage() {
           const overQuota = s.admission_quota != null && admittedGroups > s.admission_quota;
           const sessionCategories = categoriesBySession.get(s.id) ?? [];
           const activity = activityBySession.get(s.id) ?? [];
+          const idViewLog = idViewLogBySession.get(s.id) ?? [];
           // data-tour attributes are only placed on the first card — the onboarding
           // tour targets one concrete example, and duplicating the attribute across
           // every session card would just have driver.js highlight whichever one
@@ -325,6 +331,18 @@ export default async function DashboardPage() {
                     </summary>
                     <div className="mt-2">
                       <ActivityLogFeed entries={activity} />
+                    </div>
+                  </details>
+                )}
+
+                {idViewLog.length > 0 && (
+                  <details className="group">
+                    <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-sm font-medium">
+                      🔍 身分證查看紀錄（{idViewLog.length}）
+                      <span className="ml-1 inline-block transition-transform group-open:rotate-90">▶</span>
+                    </summary>
+                    <div className="mt-2">
+                      <ActivityLogFeed entries={idViewLog} />
                     </div>
                   </details>
                 )}
