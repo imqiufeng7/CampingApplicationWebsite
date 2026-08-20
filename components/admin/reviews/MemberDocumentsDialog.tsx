@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { SubmitButton } from "@/components/admin/SubmitButton";
 import {
   updateMemberFeeReview,
   updateMemberResubmission,
@@ -60,6 +59,12 @@ type FileInfo = { id: string; member_id: string | null; file_type: string };
 
 const initialState: ActionState = { error: null };
 
+// Called directly (not via <form action={...}>/useActionState like the old
+// single-registration detail page's MemberReviewRow uses this same server action) —
+// a real <form> submit inside this Dialog was closing it on every update, presumably
+// a Base UI outside-interaction/focus quirk triggered by the native submit event.
+// Matches MemberResubmissionForm's already-working pattern just below, which never
+// had this problem because it never used a <form> either.
 function MemberFeeReviewForm({
   sessionId,
   registrationId,
@@ -71,30 +76,44 @@ function MemberFeeReviewForm({
   member: MemberInfo;
   canEdit: boolean;
 }) {
-  const action = updateMemberFeeReview.bind(null, sessionId, registrationId, member.id);
-  const [state, formAction] = useActionState(action, initialState);
+  const [value, setValue] = useState(member.fee_review_result);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (state.error) toast.error(state.error);
-  }, [state.error]);
+  async function handleUpdate() {
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      formData.set("fee_review_result", value);
+      const result = await updateMemberFeeReview(sessionId, registrationId, member.id, initialState, formData);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已更新審核結果");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (!canEdit) {
     return <span className="text-sm">{member.fee_review_result}</span>;
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <select
-        name="fee_review_result"
-        defaultValue={member.fee_review_result}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
       >
         <option value="審核中">審核中</option>
         <option value="需繳費">需繳費</option>
         <option value="無需繳費">無需繳費</option>
       </select>
-      <SubmitButton>更新</SubmitButton>
-    </form>
+      <Button type="button" size="sm" variant="outline" disabled={saving} onClick={handleUpdate}>
+        {saving ? "更新中..." : "更新"}
+      </Button>
+    </div>
   );
 }
 

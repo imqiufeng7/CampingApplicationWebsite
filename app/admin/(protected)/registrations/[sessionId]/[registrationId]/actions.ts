@@ -188,6 +188,7 @@ export async function updateMemberFeeReview(
   }
 
   revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
+  revalidatePath(`/admin/reviews/${sessionId}`);
   return { error: null };
 }
 
