@@ -72,6 +72,14 @@ export const reviewsTourSteps: DriveStep[] = [
     },
   },
   {
+    element: '[data-tour="review-export"]',
+    popover: {
+      title: "檔案下載",
+      description:
+        "可以匯出完整報名資料、收據開立用資料、報到使用資料或錄取名單，皆為 CSV 檔案，姓名/電話會依用途自動打碼。",
+    },
+  },
+  {
     element: '[data-tour="review-table"]',
     popover: {
       title: "表格直接編輯",

@@ -716,7 +716,9 @@ export function ReviewTable({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <ExportMenu rows={filtered} registrationCategoryMap={registrationCategoryMap} />
+        <div data-tour="review-export">
+          <ExportMenu rows={filtered} registrationCategoryMap={registrationCategoryMap} />
+        </div>
 
         {canEditAdmission && <SendSelectedResultsDialog sessionId={sessionId} registrationIds={selectedIds} />}
 
