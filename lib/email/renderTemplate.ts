@@ -30,10 +30,22 @@ export function renderTemplate(template: string, vars: Record<string, string>): 
 // sanitizeContentHtml runs last as a defense-in-depth pass over the whole result,
 // same rationale as RichContent's render-time sanitization.
 export function renderHtmlTemplate(template: string, vars: Record<string, string>): string {
-  let result = ensureHtml(template);
+  let result = preserveBlankLines(ensureHtml(template));
   for (const [key, value] of Object.entries(vars)) {
     const safeValue = escapeHtml(value).replace(/\n/g, "<br>");
     result = result.replaceAll(`{{${key}}}`, safeValue);
   }
   return sanitizeContentHtml(result);
+}
+
+// An empty <p></p> — what pressing Enter on an already-blank line produces, both in
+// the rich text editor and in ensureHtml's line-by-line conversion of legacy
+// plain-text rows — has zero content and therefore zero rendered height in most
+// mail clients. Unlike the admin app's own preview (which loads globals.css and can
+// fix this with CSS), the actual HTML mailed to recipients carries no stylesheet at
+// all, so multiple consecutive blank lines collapse down to a single visual gap.
+// Giving each one a literal <br> makes it occupy real vertical space using nothing
+// but plain HTML, independent of any CSS support.
+function preserveBlankLines(html: string): string {
+  return html.replace(/<p>\s*<\/p>/g, "<p><br></p>");
 }
