@@ -46,6 +46,7 @@ async function sendAccountSetupLink(
   admin: ReturnType<typeof createAdminClient>,
   email: string,
   isNewUser: boolean,
+  name: string,
   roleLabel: string
 ): Promise<{ userId?: string; error?: string }> {
   const redirectTo = `${siteUrl()}/admin/accept-invite`;
@@ -69,7 +70,7 @@ async function sendAccountSetupLink(
   // URLs, they don't click buttons.
   const setupUrl = `${redirectTo}?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${linkData.properties.verification_type}`;
 
-  const vars = buildAdminInviteVars({ roleLabel, setupUrl });
+  const vars = buildAdminInviteVars({ name, roleLabel, setupUrl });
   const template = await getGlobalEmailTemplate(admin, "管理員邀請", {
     subjectTemplate: DEFAULT_ADMIN_INVITE_SUBJECT,
     bodyTemplate: DEFAULT_ADMIN_INVITE_BODY,
@@ -112,7 +113,11 @@ export async function createAdminUser(_prev: ActionState, formData: FormData): P
   const { data: existing } = await admin.auth.admin.listUsers();
   const existingUser = existing?.users.find((u) => u.email === email);
 
-  const result = await sendAccountSetupLink(admin, email, !existingUser, roleKey);
+  // roleKey (e.g. "vendor") isn't fit for display — fetch the human-readable label
+  // for the invite email, same as resendInvite already does below.
+  const { data: roleRow } = await admin.from("admin_roles").select("label").eq("id", roleId).maybeSingle();
+
+  const result = await sendAccountSetupLink(admin, email, !existingUser, name, roleRow?.label ?? "");
   if (!result.userId) {
     return { error: result.error ?? "無法建立帳號" };
   }
@@ -144,7 +149,7 @@ export async function resendInvite(adminUserId: string): Promise<ActionState> {
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("admin_users")
-    .select("email, role_id")
+    .select("email, name, role_id")
     .eq("id", adminUserId)
     .maybeSingle();
 
@@ -153,7 +158,7 @@ export async function resendInvite(adminUserId: string): Promise<ActionState> {
   }
 
   const { data: roleRow } = await admin.from("admin_roles").select("label").eq("id", row.role_id).maybeSingle();
-  const result = await sendAccountSetupLink(admin, row.email, false, roleRow?.label ?? "");
+  const result = await sendAccountSetupLink(admin, row.email, false, row.name ?? "", roleRow?.label ?? "");
   if (result.error) {
     return { error: result.error };
   }

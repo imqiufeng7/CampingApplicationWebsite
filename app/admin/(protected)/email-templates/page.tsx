@@ -22,7 +22,7 @@ const PLACEHOLDERS: Partial<Record<EmailType, string[]>> = {
   "審核結果-正取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   "審核結果-備取": ["活動名稱", "錄取結果", "成員審核結果", "繳費資訊"],
   退回補件: ["活動名稱", "報名編號", "補件原因", "修改連結"],
-  管理員邀請: ["角色", "設定連結"],
+  管理員邀請: ["姓名", "角色", "設定連結"],
 };
 
 // Sample data so the vendor can preview layout without needing a real registration —
@@ -56,6 +56,7 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
     修改連結: "https://example.com/edit/abc123",
   },
   管理員邀請: {
+    姓名: "王小明",
     角色: "場地管理員",
     設定連結: "https://example.com/admin/accept-invite?token_hash=abc123&type=invite",
   },

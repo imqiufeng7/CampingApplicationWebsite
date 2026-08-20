@@ -1,4 +1,5 @@
 export interface AdminInviteEmailInput {
+  name: string;
   roleLabel: string;
   setupUrl: string;
 }
@@ -6,7 +7,7 @@ export interface AdminInviteEmailInput {
 // Fallback only — matches the row seeded by the email_templates migration, used if
 // that row was somehow deleted (getGlobalEmailTemplate's last resort).
 export const DEFAULT_ADMIN_INVITE_SUBJECT = "【報名系統後台】您已受邀加入管理團隊";
-export const DEFAULT_ADMIN_INVITE_BODY = `您好，
+export const DEFAULT_ADMIN_INVITE_BODY = `{{姓名}} 您好，
 
 您已被邀請加入報名系統後台，角色為「{{角色}}」。
 
@@ -18,6 +19,7 @@ export const DEFAULT_ADMIN_INVITE_BODY = `您好，
 
 export function buildAdminInviteVars(input: AdminInviteEmailInput): Record<string, string> {
   return {
+    姓名: input.name,
     角色: input.roleLabel,
     設定連結: input.setupUrl,
   };
