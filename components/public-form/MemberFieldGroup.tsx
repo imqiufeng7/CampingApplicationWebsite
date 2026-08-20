@@ -14,6 +14,7 @@ import {
 import { SectionCard } from "@/components/public-form/SectionCard";
 import { FileUploadField } from "@/components/public-form/FileUploadField";
 import { BirthDateWheelPicker } from "@/components/public-form/BirthDateWheelPicker";
+import { BirthDateCalendarPicker } from "@/components/public-form/BirthDateCalendarPicker";
 import type { RegistrationFormInput } from "@/lib/validation/registration-schema";
 import type { Database } from "@/lib/db/types";
 
@@ -111,21 +112,43 @@ export function MemberFieldGroup({
         />
 
         <div className="sm:col-span-2">
-          <FormLabel className="mb-2">出生日期（民國，必填，滾動選擇）</FormLabel>
-          <BirthDateWheelPicker
-            year={birthYear}
-            month={birthMonth}
-            day={birthDay}
-            onYearChange={(v) =>
-              setValue(`members.${index}.birth_year_roc`, v, { shouldValidate: true, shouldDirty: true })
-            }
-            onMonthChange={(v) =>
-              setValue(`members.${index}.birth_month`, v, { shouldValidate: true, shouldDirty: true })
-            }
-            onDayChange={(v) =>
-              setValue(`members.${index}.birth_day`, v, { shouldValidate: true, shouldDirty: true })
-            }
-          />
+          <FormLabel className="mb-2">出生日期（民國，必填）</FormLabel>
+          {/* Small screens keep the scroll-wheel picker (fast for touch); sm and up
+              switch to a calendar so a mouse/keyboard user isn't stuck scrolling
+              through ~95 years one row at a time. Both stay ROC-numbered — the
+              calendar's year/month selects are 民國, not Gregorian. */}
+          <div className="sm:hidden">
+            <BirthDateWheelPicker
+              year={birthYear}
+              month={birthMonth}
+              day={birthDay}
+              onYearChange={(v) =>
+                setValue(`members.${index}.birth_year_roc`, v, { shouldValidate: true, shouldDirty: true })
+              }
+              onMonthChange={(v) =>
+                setValue(`members.${index}.birth_month`, v, { shouldValidate: true, shouldDirty: true })
+              }
+              onDayChange={(v) =>
+                setValue(`members.${index}.birth_day`, v, { shouldValidate: true, shouldDirty: true })
+              }
+            />
+          </div>
+          <div className="hidden sm:block">
+            <BirthDateCalendarPicker
+              year={birthYear}
+              month={birthMonth}
+              day={birthDay}
+              onYearChange={(v) =>
+                setValue(`members.${index}.birth_year_roc`, v, { shouldValidate: true, shouldDirty: true })
+              }
+              onMonthChange={(v) =>
+                setValue(`members.${index}.birth_month`, v, { shouldValidate: true, shouldDirty: true })
+              }
+              onDayChange={(v) =>
+                setValue(`members.${index}.birth_day`, v, { shouldValidate: true, shouldDirty: true })
+              }
+            />
+          </div>
           <div className="mt-1 grid grid-cols-3 gap-2">
             <FormField
               control={control}
