@@ -199,7 +199,6 @@ export async function cloneSession(
       intro_content: source.intro_content,
       schedule_content: source.schedule_content,
       registration_process_content: source.registration_process_content,
-      fee_waiver_content: source.fee_waiver_content,
       rules_text: source.rules_text,
       privacy_consent_text: source.privacy_consent_text,
       submit_reminder_text: source.submit_reminder_text,

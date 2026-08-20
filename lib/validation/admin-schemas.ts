@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { taipeiInputValueToIso } from "@/lib/timezone";
+import { hasVisibleContent } from "@/lib/contentHtml";
 
 export const seriesSchema = z.object({
   name: z.string().min(1, "請輸入活動系列名稱"),
@@ -20,6 +21,15 @@ const optionalText = z
   .string()
   .optional()
   .transform((v) => (v && v.trim() ? v : null));
+
+// Same "blank means unset" contract as optionalText, but rich-text-aware: the
+// RichTextEditor leaves behind "<p></p>" rather than "" when a field is emptied out,
+// which optionalText's plain string check would treat as non-blank. See
+// lib/contentHtml.ts's hasVisibleContent for why.
+const optionalRichText = z
+  .string()
+  .optional()
+  .transform((v) => (hasVisibleContent(v) ? (v as string) : null));
 
 // z.coerce.number() on an empty string coerces to 0 (Number("") === 0), not undefined —
 // which would silently turn a blank "選填" number field into a real 0 on every save
@@ -47,15 +57,14 @@ export const sessionSchema = z.object({
   max_members_per_registration: z.coerce.number().int().min(1).default(1),
   managing_org: z.string().optional(),
   status: z.enum(["draft", "open", "closed", "archived"]),
-  consent_gate_text: optionalText,
-  intro_content: optionalText,
-  schedule_content: optionalText,
-  registration_process_content: optionalText,
-  fee_waiver_content: optionalText,
-  rules_text: optionalText,
-  privacy_consent_text: optionalText,
-  submit_reminder_text: optionalText,
-  success_message_text: optionalText,
+  consent_gate_text: optionalRichText,
+  intro_content: optionalRichText,
+  schedule_content: optionalRichText,
+  registration_process_content: optionalRichText,
+  rules_text: optionalRichText,
+  privacy_consent_text: optionalRichText,
+  submit_reminder_text: optionalRichText,
+  success_message_text: optionalRichText,
   redirect_url: optionalText,
   redirect_label: optionalText,
   theme_color: optionalText,

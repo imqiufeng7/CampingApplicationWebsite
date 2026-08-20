@@ -205,12 +205,6 @@ export function SessionForm({
         defaultValue={session?.registration_process_content ?? ""}
       />
       <ContentField
-        name="fee_waiver_content"
-        label="減免內容及應附文件說明（選填）"
-        sessionId={session?.id}
-        defaultValue={session?.fee_waiver_content ?? ""}
-      />
-      <ContentField
         name="rules_text"
         label="活動辦法/注意事項全文（必填，民眾同意前會看到，送出前的同意條款也會引用此場次名稱）"
         sessionId={session?.id}

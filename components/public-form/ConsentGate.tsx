@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RichContent } from "@/components/public-form/RichContent";
 import { SectionCard } from "@/components/public-form/SectionCard";
+import { withFallback } from "@/lib/contentHtml";
 
 const DEFAULT_GATE_TEMPLATE = `若您同意本頁相關條款，則請點選本頁頁末之「同意」按鈕，即可進行後續的報名程序，若您不同意本頁相關條款，則無法報名參加。
 凡於本網站登錄資料者，均視為已同意本頁所有規定，本網站內其他說明若與本頁抵觸者，則均以本頁說明為準。
@@ -35,7 +36,7 @@ export function ConsentGate({
 
   return (
     <SectionCard title="報名須知與同意條款" delay={240} contentClassName="grid gap-4">
-      <RichContent html={renderGateText(gateTemplate || DEFAULT_GATE_TEMPLATE, activityTitle)} />
+      <RichContent html={renderGateText(withFallback(gateTemplate, DEFAULT_GATE_TEMPLATE), activityTitle)} />
       <div className="flex flex-wrap gap-3">
         <Button
           type="button"

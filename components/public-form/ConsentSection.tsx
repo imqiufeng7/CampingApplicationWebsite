@@ -5,6 +5,7 @@ import type { Control } from "react-hook-form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RichContent } from "@/components/public-form/RichContent";
+import { withFallback } from "@/lib/contentHtml";
 import type { RegistrationFormInput } from "@/lib/validation/registration-schema";
 
 const DEFAULT_PRIVACY_CONSENT_TEXT = `本活動蒐集之個人資料（含身分證字號、聯絡方式、戶籍地址等）僅用於本次活動報名、審核、繳費、通知及相關行政作業，不作其他用途，亦不會提供第三方使用。`;
@@ -92,7 +93,7 @@ export function ConsentSection({
       />
 
       <ScrollGatedText
-        html={privacyConsentText || DEFAULT_PRIVACY_CONSENT_TEXT}
+        html={withFallback(privacyConsentText, DEFAULT_PRIVACY_CONSENT_TEXT)}
         onRead={() => setPrivacyRead(true)}
       />
       <FormField

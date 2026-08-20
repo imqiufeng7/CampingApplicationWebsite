@@ -8,15 +8,20 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Image from "@tiptap/extension-image";
 import { FontSize } from "@/lib/tiptap/FontSize";
+import { Indent } from "@/lib/tiptap/Indent";
+import { OrderedListStyle } from "@/lib/tiptap/OrderedListStyle";
 import { ensureHtml } from "@/lib/contentHtml";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   BoldIcon,
+  ItalicIcon,
   UnderlineIcon,
   ImageIcon,
   ListIcon,
   ListOrderedIcon,
+  IndentIncreaseIcon,
+  IndentDecreaseIcon,
 } from "lucide-react";
 
 const FONT_SIZES = [
@@ -56,6 +61,8 @@ export function RichTextEditor({
       TextStyle,
       Color,
       FontSize,
+      Indent,
+      OrderedListStyle,
       Image.configure({ inline: false }),
     ],
     content: ensureHtml(defaultValue),
@@ -109,6 +116,14 @@ export function RichTextEditor({
         </Button>
         <Button
           type="button"
+          variant={editor.isActive("italic") ? "secondary" : "ghost"}
+          size="icon-sm"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        >
+          <ItalicIcon />
+        </Button>
+        <Button
+          type="button"
           variant={editor.isActive("underline") ? "secondary" : "ghost"}
           size="icon-sm"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -119,17 +134,80 @@ export function RichTextEditor({
           type="button"
           variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
           size="icon-sm"
+          title="項目符號"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
           <ListIcon />
         </Button>
         <Button
           type="button"
-          variant={editor.isActive("orderedList") ? "secondary" : "ghost"}
+          variant={
+            editor.isActive("orderedList", { listStyleType: null }) ? "secondary" : "ghost"
+          }
           size="icon-sm"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          title="數字清單（1. 2. 3.）"
+          onClick={() => {
+            if (editor.isActive("orderedList", { listStyleType: "cjk-decimal" })) {
+              // Currently showing Chinese numerals — switch style instead of turning
+              // the list off, since that's what clicking "switch to 1.2.3" means here.
+              editor.chain().focus().setOrderedListStyle(null).run();
+            } else {
+              editor.chain().focus().toggleOrderedList().run();
+            }
+          }}
         >
           <ListOrderedIcon />
+        </Button>
+        <Button
+          type="button"
+          variant={
+            editor.isActive("orderedList", { listStyleType: "cjk-decimal" }) ? "secondary" : "ghost"
+          }
+          size="sm"
+          title="中文數字清單（一、二、三、）"
+          onClick={() => {
+            if (editor.isActive("orderedList", { listStyleType: "cjk-decimal" })) {
+              editor.chain().focus().toggleOrderedList().run();
+            } else if (editor.isActive("orderedList")) {
+              // Already an ordered list showing 1.2.3 — switch style, keep it on.
+              editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
+            } else {
+              editor.chain().focus().toggleOrderedList().run();
+              editor.chain().focus().setOrderedListStyle("cjk-decimal").run();
+            }
+          }}
+        >
+          一二三
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          title="增加縮排"
+          onClick={() => {
+            if (editor.isActive("listItem")) {
+              editor.chain().focus().sinkListItem("listItem").run();
+            } else {
+              editor.chain().focus().indent().run();
+            }
+          }}
+        >
+          <IndentIncreaseIcon />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          title="減少縮排"
+          onClick={() => {
+            if (editor.isActive("listItem")) {
+              editor.chain().focus().liftListItem("listItem").run();
+            } else {
+              editor.chain().focus().outdent().run();
+            }
+          }}
+        >
+          <IndentDecreaseIcon />
         </Button>
 
         <select
@@ -164,11 +242,11 @@ export function RichTextEditor({
           ))}
           <button
             type="button"
-            title="清除顏色"
+            title="清除所有文字格式（粗體、斜體、底線、顏色、字級）"
             className="text-muted-foreground px-1 text-xs underline"
-            onClick={() => editor.chain().focus().unsetColor().run()}
+            onClick={() => editor.chain().focus().unsetAllMarks().run()}
           >
-            清除
+            清除格式
           </button>
         </div>
 

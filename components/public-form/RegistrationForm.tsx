@@ -26,6 +26,7 @@ import { RichContent } from "@/components/public-form/RichContent";
 import { RegistrationCategoryPicker } from "@/components/public-form/RegistrationCategoryPicker";
 import { SectionCard } from "@/components/public-form/SectionCard";
 import { ConfettiBurst } from "@/components/public-form/ConfettiBurst";
+import { hasVisibleContent, withFallback } from "@/lib/contentHtml";
 
 type EventSession = Database["public"]["Tables"]["event_sessions"]["Row"];
 type IdentityType = Database["public"]["Tables"]["session_identity_types"]["Row"];
@@ -181,7 +182,7 @@ export function RegistrationForm({
         <CardContent className="grid gap-4 text-sm">
           <RichContent
             className="text-center"
-            html={session.success_message_text || DEFAULT_SUCCESS_MESSAGE}
+            html={withFallback(session.success_message_text, DEFAULT_SUCCESS_MESSAGE)}
           />
           <p className="bg-secondary text-secondary-foreground w-fit justify-self-center rounded-full px-4 py-1.5 font-medium">
             報名編號：{submitResult.registrationNo}
@@ -245,32 +246,26 @@ export function RegistrationForm({
         {session.location && <p className="text-muted-foreground text-sm">📍 {session.location}</p>}
       </div>
 
-      {session.intro_content && (
+      {hasVisibleContent(session.intro_content) && (
         <SectionCard title="🏕️ 活動介紹" delay={40}>
-          <RichContent html={session.intro_content} />
+          <RichContent html={session.intro_content!} />
         </SectionCard>
       )}
 
-      {session.schedule_content && (
+      {hasVisibleContent(session.schedule_content) && (
         <SectionCard title="流程表" delay={80}>
-          <RichContent html={session.schedule_content} />
+          <RichContent html={session.schedule_content!} />
         </SectionCard>
       )}
 
-      {session.registration_process_content && (
+      {hasVisibleContent(session.registration_process_content) && (
         <SectionCard title="報名流程說明" delay={120}>
-          <RichContent html={session.registration_process_content} />
-        </SectionCard>
-      )}
-
-      {session.fee_waiver_content && (
-        <SectionCard title="減免內容及應附文件" delay={160}>
-          <RichContent html={session.fee_waiver_content} />
+          <RichContent html={session.registration_process_content!} />
         </SectionCard>
       )}
 
       <SectionCard title="活動辦法/注意事項" delay={200}>
-        <RichContent html={session.rules_text || DEFAULT_RULES_TEXT} />
+        <RichContent html={withFallback(session.rules_text, DEFAULT_RULES_TEXT)} />
       </SectionCard>
 
       {session.location && (
@@ -400,14 +395,14 @@ export function RegistrationForm({
         <SectionCard title="注意事項與同意書">
           <ConsentSection
             control={form.control}
-            rulesText={session.rules_text || DEFAULT_RULES_TEXT}
+            rulesText={withFallback(session.rules_text, DEFAULT_RULES_TEXT)}
             privacyConsentText={session.privacy_consent_text}
           />
         </SectionCard>
 
-        {session.submit_reminder_text && (
+        {hasVisibleContent(session.submit_reminder_text) && (
           <SectionCard title="送出前請注意">
-            <RichContent html={session.submit_reminder_text} />
+            <RichContent html={session.submit_reminder_text!} />
           </SectionCard>
         )}
 
