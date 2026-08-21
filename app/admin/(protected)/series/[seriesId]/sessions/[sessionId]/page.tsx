@@ -87,7 +87,7 @@ export default async function SessionBuilderPage({
   }
 
   const publicUrl =
-    session.status === "open" ? `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/s/${sessionId}` : null;
+    session.status === "open" ? `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/r/${session.short_code}` : null;
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">

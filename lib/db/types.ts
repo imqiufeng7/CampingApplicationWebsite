@@ -83,6 +83,7 @@ export interface Database {
           redirect_url: string | null;
           redirect_label: string | null;
           theme_color: string | null;
+          short_code: string;
           created_at: string;
           updated_at: string;
         };
