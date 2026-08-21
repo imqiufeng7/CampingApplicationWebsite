@@ -1,6 +1,36 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { RegistrationForm } from "@/components/public-form/RegistrationForm";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+
+// Overrides the root layout's generic "報名系統 / 客製化活動報名系統" for this one
+// route — that generic text is what shows up as the title/description when this
+// link's card gets previewed (LINE, etc.), which isn't useful for telling one
+// session's link apart from another's.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}): Promise<Metadata> {
+  const { sessionId } = await params;
+  const supabase = await createClient();
+
+  const { data: session } = await supabase
+    .from("event_sessions")
+    .select("name, series_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (!session) return {};
+
+  const { data: series } = await supabase
+    .from("event_series")
+    .select("name")
+    .eq("id", session.series_id)
+    .maybeSingle();
+
+  const title = series ? `${series.name} - ${session.name}` : session.name;
+  return { title, description: `${title}｜線上報名` };
+}
 
 export default async function PublicRegistrationPage({
   params,
