@@ -398,9 +398,16 @@ export interface Database {
           log_type: "change" | "view";
           created_at: string;
         };
-        // Only ever inserted by fn_log_registration_change (the change trigger) or
-        // fn_get_registration_member_id_number (logs a read-access event on decrypt).
-        Insert: never;
+        // Inserted by fn_log_registration_change (the change trigger),
+        // fn_get_registration_member_id_number (logs a read-access event on decrypt),
+        // or directly from app/api/files/[fileId]/signed-url/route.ts via the
+        // service-role client (logs a read-access event on file/photo view — RLS has
+        // no insert policy for `authenticated`, so only server-side service-role code
+        // can write this table, matching the SECURITY DEFINER-only insert intent).
+        Insert: Partial<Omit<Database["public"]["Tables"]["admin_activity_log"]["Row"], "id" | "created_at">> & {
+          session_id: string;
+          summary: string;
+        };
         Update: never;
         Relationships: [];
       };
