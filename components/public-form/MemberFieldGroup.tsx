@@ -84,6 +84,36 @@ export function MemberFieldGroup({
       }
       contentClassName="grid gap-4 sm:grid-cols-2"
     >
+        {index === 0 && (
+          <>
+            <FormField
+              control={control}
+              name="contact_email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>聯絡 Email（必填）</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="contact_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>聯絡電話（必填）</FormLabel>
+                  <FormControl>
+                    <Input placeholder="0912-345678" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
         <FormField
           control={control}
           name={`members.${index}.name`}
@@ -195,6 +225,46 @@ export function MemberFieldGroup({
                   <option value="男">男</option>
                   <option value="女">女</option>
                   <option value="跨性別">跨性別</option>
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`members.${index}.midnight_snack_diet`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>宵夜葷素（必填）</FormLabel>
+              <FormControl>
+                <select
+                  {...field}
+                  className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
+                >
+                  <option value="">請選擇</option>
+                  <option value="葷">葷</option>
+                  <option value="素">素</option>
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`members.${index}.breakfast_diet`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>早餐葷素（必填）</FormLabel>
+              <FormControl>
+                <select
+                  {...field}
+                  className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
+                >
+                  <option value="">請選擇</option>
+                  <option value="葷">葷</option>
+                  <option value="素">素</option>
                 </select>
               </FormControl>
               <FormMessage />

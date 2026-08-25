@@ -41,6 +41,8 @@ export function buildRegistrationSchema(config: SessionFormConfig) {
         .min(1, "日期需為 01-31")
         .max(31, "日期需為 01-31"),
       gender: z.enum(["男", "女", "跨性別"], "請選擇生理性別"),
+      midnight_snack_diet: z.enum(["葷", "素"], "請選擇宵夜葷素"),
+      breakfast_diet: z.enum(["葷", "素"], "請選擇早餐葷素"),
       // Replaces a standalone "身分別" picker: identity_type_id (which drives the
       // 所屬單位 field) is derived from this checkbox in RegistrationForm's onSubmit,
       // not chosen directly — most sessions only distinguish 工作人員 vs 民眾, and
@@ -127,6 +129,8 @@ export function emptyMember(): RegistrationFormInput["members"][number] {
     birth_month: "" as unknown as number,
     birth_day: "" as unknown as number,
     gender: "" as unknown as "男" | "女" | "跨性別",
+    midnight_snack_diet: "" as unknown as "葷" | "素",
+    breakfast_diet: "" as unknown as "葷" | "素",
     is_staff: false,
     org_selected: "",
     org_other_text: "",

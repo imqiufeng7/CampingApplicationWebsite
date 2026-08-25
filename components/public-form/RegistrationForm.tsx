@@ -15,9 +15,8 @@ import {
 } from "@/lib/validation/registration-schema";
 import type { Database } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { ProgressDots } from "@/components/public-form/ProgressDots";
 import { MemberFieldGroup } from "@/components/public-form/MemberFieldGroup";
 import { ConsentSection } from "@/components/public-form/ConsentSection";
@@ -124,6 +123,8 @@ export function RegistrationForm({
           birth_month: m.birth_month,
           birth_day: m.birth_day,
           gender: m.gender,
+          midnight_snack_diet: m.midnight_snack_diet,
+          breakfast_diet: m.breakfast_diet,
           identity_type_id: resolveIdentityTypeId(m.is_staff, identityTypes),
           org_selected: m.org_selected || null,
           org_other_text: m.org_other_text || null,
@@ -328,43 +329,15 @@ export function RegistrationForm({
 
         <ProgressDots
           sections={[
-            { label: "聯絡資訊", done: !!contactEmail },
             ...(watchedMembers ?? []).map((m, i) => ({
-              label: i === 0 ? "聯絡人資料" : `成員 ${i + 1}`,
-              done: !!m?.name && !!m?.id_number,
+              label: i === 0 ? "聯絡人（成員1）" : `成員 ${i + 1}`,
+              done: i === 0
+                ? !!m?.name && !!m?.id_number && !!contactEmail
+                : !!m?.name && !!m?.id_number,
             })),
             { label: "同意事項", done: !!agreeRules && !!agreePrivacy },
           ]}
         />
-
-        <SectionCard title="聯絡資訊" contentClassName="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="contact_email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>聯絡 Email（必填）</FormLabel>
-                <FormControl>
-                  <Input type="email" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="contact_phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>聯絡電話（必填）</FormLabel>
-                <FormControl>
-                  <Input placeholder="0912-345678" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </SectionCard>
 
         {fields.map((field, index) => (
           <MemberFieldGroup
