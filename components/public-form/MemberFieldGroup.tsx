@@ -233,30 +233,10 @@ export function MemberFieldGroup({
         />
         <FormField
           control={control}
-          name={`members.${index}.midnight_snack_diet`}
+          name={`members.${index}.meal_diet`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>宵夜葷素（必填）</FormLabel>
-              <FormControl>
-                <select
-                  {...field}
-                  className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
-                >
-                  <option value="">請選擇</option>
-                  <option value="葷">葷</option>
-                  <option value="素">素</option>
-                </select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name={`members.${index}.breakfast_diet`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>早餐葷素（必填）</FormLabel>
+              <FormLabel>宵夜/早餐葷素（必填）</FormLabel>
               <FormControl>
                 <select
                   {...field}

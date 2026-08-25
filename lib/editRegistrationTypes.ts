@@ -11,8 +11,7 @@ export interface EditRegistrationMemberData {
   birth_month: number | null;
   birth_day: number | null;
   gender: string | null;
-  midnight_snack_diet: string | null;
-  breakfast_diet: string | null;
+  meal_diet: string | null;
   identity_type_id: string | null;
   org_selected: string | null;
   org_other_text: string | null;
