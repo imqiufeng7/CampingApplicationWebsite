@@ -520,22 +520,28 @@ export async function updateRegistrationCategory(
   return { error: null };
 }
 
+// Returns { error } instead of throwing — bound directly to a <form action> that
+// throws on failure surfaces as an uncaught Next.js error page/digest instead of a
+// readable message, which is exactly why the FK-restrict case (report already using
+// this category) looked like "the delete button doesn't do anything".
 export async function deleteRegistrationCategory(
   seriesId: string,
   sessionId: string,
   id: string
-): Promise<void> {
+): Promise<{ error: string | null }> {
   await requireRole("vendor");
   const supabase = await createClient();
   const { error } = await supabase.from("session_registration_categories").delete().eq("id", id);
   if (error) {
-    throw new Error(
-      error.code === "23503"
-        ? "已經有報名資料使用此類別，無法刪除，請改用編輯調整設定"
-        : error.message
-    );
+    return {
+      error:
+        error.code === "23503"
+          ? "已經有報名資料使用此類別，無法刪除，請改用編輯調整設定"
+          : error.message,
+    };
   }
   revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  return { error: null };
 }
 
 // ---------------------------------------------------------------------------

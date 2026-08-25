@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { toast } from "sonner";
 import {
   createRegistrationCategory,
   deleteRegistrationCategory,
@@ -29,6 +30,21 @@ function RegistrationCategoryRow({
 }) {
   const action = updateRegistrationCategory.bind(null, seriesId, sessionId, category.id);
   const [state, formAction] = useActionState(action, initialState);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const result = await deleteRegistrationCategory(seriesId, sessionId, category.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已刪除類別");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="grid gap-3 rounded-lg border p-3">
@@ -76,11 +92,9 @@ function RegistrationCategoryRow({
           <SubmitButton>儲存</SubmitButton>
         </div>
       </form>
-      <form action={deleteRegistrationCategory.bind(null, seriesId, sessionId, category.id)}>
-        <Button type="submit" variant="ghost" size="sm">
-          刪除類別
-        </Button>
-      </form>
+      <Button type="button" variant="ghost" size="sm" disabled={deleting} onClick={handleDelete}>
+        {deleting ? "刪除中..." : "刪除類別"}
+      </Button>
     </div>
   );
 }
