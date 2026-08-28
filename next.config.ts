@@ -55,6 +55,14 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy-Report-Only", value: csp },
         ],
       },
+      {
+        // Both pages read security-relevant state from the URL client-side (the
+        // session-timeout reason banner; the one-time invite token) after a static
+        // HTML shell loads — a CDN-cached shell is otherwise indistinguishable from a
+        // fresh one until hydration runs, so force revalidation on every request.
+        source: "/admin/(login|accept-invite)",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
     ];
   },
 };
