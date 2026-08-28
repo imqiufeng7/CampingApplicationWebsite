@@ -60,7 +60,11 @@ const nextConfig: NextConfig = {
         // session-timeout reason banner; the one-time invite token) after a static
         // HTML shell loads — a CDN-cached shell is otherwise indistinguishable from a
         // fresh one until hydration runs, so force revalidation on every request.
-        source: "/admin/(login|accept-invite)",
+        source: "/admin/login",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/admin/accept-invite",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
