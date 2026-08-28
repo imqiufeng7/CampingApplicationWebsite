@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/auth/session";
 import { SignOutButton } from "@/components/admin/SignOutButton";
+import { IdleTimeout } from "@/components/admin/IdleTimeout";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const admin = await getCurrentAdmin();
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="min-h-screen">
+      <IdleTimeout />
       <div
         className="h-1"
         style={{

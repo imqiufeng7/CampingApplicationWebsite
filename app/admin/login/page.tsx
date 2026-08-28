@@ -92,12 +92,20 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+const SESSION_END_REASON_MESSAGE: Record<string, string> = {
+  idle: "閒置超過 30 分鐘，已自動登出，請重新登入。",
+  expired: "登入已超過 8 小時工作階段上限，請重新登入。",
+};
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  const reason = searchParams.get("reason");
+  const sessionEndMessage = reason ? SESSION_END_REASON_MESSAGE[reason] : null;
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -132,6 +140,11 @@ function LoginForm() {
         <CardTitle>後台登入</CardTitle>
       </CardHeader>
       <CardContent>
+        {sessionEndMessage && (
+          <p className="bg-secondary text-secondary-foreground mb-4 rounded-md px-3 py-2 text-sm">
+            {sessionEndMessage}
+          </p>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
