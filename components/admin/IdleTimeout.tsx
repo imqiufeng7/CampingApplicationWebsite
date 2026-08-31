@@ -27,19 +27,27 @@ export function IdleTimeout() {
       lastWriteRef.current = now;
       localStorage.setItem(STORAGE_KEY, String(now));
     }
-    recordActivity();
 
+    // Mounting is itself a form of activity (a fresh page load, the browser reopened)
+    // — but only once it's cleared the idle check. Stamping "now" unconditionally on
+    // mount, before checking the *previous* value, would erase the one piece of
+    // evidence that the tab sat closed/idle past the limit, so a closed browser
+    // reopened after 30+ minutes would always look freshly active instead of expired.
     async function checkIdle() {
       if (signedOutRef.current) return;
       const lastActivityRaw = localStorage.getItem(STORAGE_KEY);
-      const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : Date.now();
-      if (Date.now() - lastActivity >= IDLE_LIMIT_MS) {
+      const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : null;
+      if (lastActivity !== null && Date.now() - lastActivity >= IDLE_LIMIT_MS) {
         signedOutRef.current = true;
         const supabase = createClient();
         await supabase.auth.signOut();
         router.replace("/admin/login?reason=idle");
+        return;
       }
+      recordActivity();
     }
+
+    checkIdle();
 
     ACTIVITY_EVENTS.forEach((event) =>
       window.addEventListener(event, recordActivity, { passive: true })
