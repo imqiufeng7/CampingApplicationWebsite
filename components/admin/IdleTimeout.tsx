@@ -3,7 +3,12 @@
 import { useEffect, useRef } from "react";
 
 const IDLE_LIMIT_MS = 30 * 60 * 1000;
-const STORAGE_KEY = "admin_last_activity";
+// Exported so the login page can clear it right after a fresh sign-in — otherwise a
+// stale timestamp left over from the idle-timeout that just logged this admin out
+// makes the very next login look already-expired on mount, kicking them straight
+// back out a few seconds after landing on the dashboard.
+export const LAST_ACTIVITY_STORAGE_KEY = "admin_last_activity";
+const STORAGE_KEY = LAST_ACTIVITY_STORAGE_KEY;
 const CHECK_INTERVAL_MS = 30 * 1000;
 const ACTIVITY_WRITE_THROTTLE_MS = 5 * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"] as const;

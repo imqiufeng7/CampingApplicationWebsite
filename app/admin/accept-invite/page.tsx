@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/client";
+import { LAST_ACTIVITY_STORAGE_KEY } from "@/components/admin/IdleTimeout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,6 +133,11 @@ export default function AcceptInvitePage() {
       setSubmitting(false);
       return;
     }
+
+    // Same reason as the login page: a stale timestamp from a previous admin's
+    // idle-timeout on this same browser would otherwise make IdleTimeout's mount-time
+    // check see this brand new session as already-idle.
+    localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY);
 
     setStatus("done");
     router.replace("/admin");

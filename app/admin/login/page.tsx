@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/client";
 import { requestPasswordReset } from "@/app/admin/login/actions";
+import { LAST_ACTIVITY_STORAGE_KEY } from "@/components/admin/IdleTimeout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,6 +125,11 @@ function LoginForm() {
       setSubmitting(false);
       return;
     }
+
+    // Otherwise a stale timestamp from whatever logged this admin out last time (idle
+    // or expired) makes IdleTimeout's mount-time check see this brand new session as
+    // already-idle, signing them straight back out a few seconds after landing.
+    localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY);
 
     const redirectTo = searchParams.get("redirectTo") ?? "/admin";
     router.replace(redirectTo);
