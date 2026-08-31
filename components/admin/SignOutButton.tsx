@@ -1,21 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
+// A full navigation to the Route Handler, not a client-side signOut() — see
+// force-signout/route.ts for why: it's the only place that can actually clear the
+// httpOnly admin_login_at marker cookie alongside the real session.
 export function SignOutButton() {
-  const router = useRouter();
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.replace("/admin/login");
-    router.refresh();
-  }
-
   return (
-    <Button variant="ghost" size="sm" onClick={handleSignOut}>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        window.location.href = "/api/auth/force-signout";
+      }}
+    >
       登出
     </Button>
   );

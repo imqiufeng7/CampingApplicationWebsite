@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 const IDLE_LIMIT_MS = 30 * 60 * 1000;
 const STORAGE_KEY = "admin_last_activity";
@@ -16,7 +14,6 @@ const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchst
 // last-activity from localStorage (not just a setTimeout) means a background/throttled
 // tab still gets caught the moment it's brought back to the foreground.
 export function IdleTimeout() {
-  const router = useRouter();
   const signedOutRef = useRef(false);
   const lastWriteRef = useRef(0);
 
@@ -33,15 +30,16 @@ export function IdleTimeout() {
     // mount, before checking the *previous* value, would erase the one piece of
     // evidence that the tab sat closed/idle past the limit, so a closed browser
     // reopened after 30+ minutes would always look freshly active instead of expired.
-    async function checkIdle() {
+    function checkIdle() {
       if (signedOutRef.current) return;
       const lastActivityRaw = localStorage.getItem(STORAGE_KEY);
       const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : null;
       if (lastActivity !== null && Date.now() - lastActivity >= IDLE_LIMIT_MS) {
         signedOutRef.current = true;
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        router.replace("/admin/login?reason=idle");
+        // Full navigation, not router.replace() + client signOut() — see
+        // force-signout/route.ts for why this is the only place that can actually
+        // clear the httpOnly admin_login_at cookie alongside the real session.
+        window.location.href = "/api/auth/force-signout?reason=idle";
         return;
       }
       recordActivity();
@@ -60,7 +58,7 @@ export function IdleTimeout() {
       document.removeEventListener("visibilitychange", checkIdle);
       clearInterval(interval);
     };
-  }, [router]);
+  }, []);
 
   return null;
 }
