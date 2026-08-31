@@ -68,12 +68,16 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!loginAt) {
+      // maxAge must outlive SESSION_TIMEBOX_MS itself — setting it equal to the
+      // timebox meant the browser deleted the cookie at the exact moment it was
+      // needed to detect expiry, so the next request saw "no cookie" and silently
+      // re-stamped a fresh 8 hours instead of ever forcing a re-login.
       response.cookies.set(ADMIN_LOGIN_AT_COOKIE, String(now), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: SESSION_TIMEBOX_MS / 1000,
+        maxAge: (SESSION_TIMEBOX_MS / 1000) * 2,
       });
     }
   }
