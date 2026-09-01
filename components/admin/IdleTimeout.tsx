@@ -30,27 +30,40 @@ export function IdleTimeout() {
       localStorage.setItem(STORAGE_KEY, String(now));
     }
 
-    // Mounting is itself a form of activity (a fresh page load, the browser reopened)
-    // — but only once it's cleared the idle check. Stamping "now" unconditionally on
-    // mount, before checking the *previous* value, would erase the one piece of
-    // evidence that the tab sat closed/idle past the limit, so a closed browser
-    // reopened after 30+ minutes would always look freshly active instead of expired.
-    function checkIdle() {
-      if (signedOutRef.current) return;
+    function isAlreadyIdle() {
       const lastActivityRaw = localStorage.getItem(STORAGE_KEY);
       const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : null;
-      if (lastActivity !== null && Date.now() - lastActivity >= IDLE_LIMIT_MS) {
-        signedOutRef.current = true;
-        // Full navigation, not router.replace() + client signOut() — see
-        // force-signout/route.ts for why this is the only place that can actually
-        // clear the httpOnly admin_login_at cookie alongside the real session.
-        window.location.href = "/api/auth/force-signout?reason=idle";
-        return;
-      }
-      recordActivity();
+      return lastActivity !== null && Date.now() - lastActivity >= IDLE_LIMIT_MS;
     }
 
-    checkIdle();
+    function signOutForIdle() {
+      if (signedOutRef.current) return;
+      signedOutRef.current = true;
+      // Full navigation, not router.replace() + client signOut() — see
+      // force-signout/route.ts for why this is the only place that can actually
+      // clear the httpOnly admin_login_at cookie alongside the real session.
+      window.location.href = "/api/auth/force-signout?reason=idle";
+    }
+
+    // Read-only recheck for the interval and visibilitychange — it must NEVER also
+    // call recordActivity(), or the interval firing every 30s becomes "activity" in
+    // its own right and the clock can never actually reach 30 minutes regardless of
+    // whether a human touched anything. Only real input events (below) count as use.
+    function checkIdle() {
+      if (signedOutRef.current) return;
+      if (isAlreadyIdle()) signOutForIdle();
+    }
+
+    // Mounting is itself a form of activity (a fresh page load, the browser reopened)
+    // — but only once cleared against the *previous* value. Writing "now" first, then
+    // checking, would erase the one piece of evidence that the tab sat closed/idle
+    // past the limit, so a closed browser reopened after 30+ minutes would always
+    // look freshly active instead of expired.
+    if (isAlreadyIdle()) {
+      signOutForIdle();
+    } else {
+      recordActivity();
+    }
 
     ACTIVITY_EVENTS.forEach((event) =>
       window.addEventListener(event, recordActivity, { passive: true })
