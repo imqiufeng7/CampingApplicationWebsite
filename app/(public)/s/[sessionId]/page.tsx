@@ -93,12 +93,15 @@ export default async function PublicRegistrationPage({
   // Capacity is either session-wide (no categories defined — original behavior) or
   // per-category (see the category-count block below); never both, matching
   // fn_submit_registration's own branching.
+  //
+  // Both counts go through SECURITY DEFINER RPCs rather than a direct query — anon has
+  // no SELECT policy on registrations at all (by design, to keep PII unreadable to the
+  // public), so a direct .select() here would always silently return zero rows and
+  // this "額滿" gate would never actually trigger for a real visitor.
   if (!hasCategories && session.capacity_total !== null) {
-    const { count } = await supabase
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("session_id", sessionId)
-      .eq("is_cancelled", false);
+    const { data: count } = await supabase.rpc("fn_get_session_registration_count", {
+      p_session_id: sessionId,
+    });
 
     if ((count ?? 0) >= session.capacity_total) {
       return (
@@ -114,19 +117,13 @@ export default async function PublicRegistrationPage({
 
   let categoriesWithAvailability = registrationCategories.map((rc) => ({ ...rc, isFull: false }));
   if (hasCategories) {
-    const { data: activeRegistrations } = await supabase
-      .from("registrations")
-      .select("registration_category_id")
-      .eq("session_id", sessionId)
-      .eq("is_cancelled", false);
+    const { data: categoryCounts } = await supabase.rpc("fn_get_category_registration_counts", {
+      p_session_id: sessionId,
+    });
 
     const countByCategory = new Map<string, number>();
-    for (const r of activeRegistrations ?? []) {
-      if (!r.registration_category_id) continue;
-      countByCategory.set(
-        r.registration_category_id,
-        (countByCategory.get(r.registration_category_id) ?? 0) + 1
-      );
+    for (const row of categoryCounts ?? []) {
+      countByCategory.set(row.registration_category_id, row.registration_count);
     }
 
     categoriesWithAvailability = registrationCategories.map((rc) => ({

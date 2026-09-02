@@ -484,6 +484,14 @@ export interface Database {
         Args: { p_page: string };
         Returns: undefined;
       };
+      fn_get_session_registration_count: {
+        Args: { p_session_id: string };
+        Returns: number;
+      };
+      fn_get_category_registration_counts: {
+        Args: { p_session_id: string };
+        Returns: { registration_category_id: string; registration_count: number }[];
+      };
     };
   };
 }
