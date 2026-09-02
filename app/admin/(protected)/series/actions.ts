@@ -188,6 +188,7 @@ export async function cloneSession(
       fee_base: source.fee_base,
       fee_discount_per_person: source.fee_discount_per_person,
       max_members_per_registration: source.max_members_per_registration,
+      min_members_per_registration: source.min_members_per_registration,
       managing_org: source.managing_org,
       // Every other field is copied verbatim per the vendor's request ("完整複製，我
       // 再依據需要調整") — status is the one deliberate exception, so a clone never
@@ -257,6 +258,7 @@ export async function cloneSession(
         session_id: newSession.id,
         label: rc.label,
         max_members: rc.max_members,
+        min_members: rc.min_members,
         capacity_total: rc.capacity_total,
         admission_quota: rc.admission_quota,
         is_free: rc.is_free,

@@ -54,6 +54,16 @@ function RegistrationCategoryRow({
           <Input id={`rc-label-${category.id}`} name="label" required defaultValue={category.label} />
         </div>
         <div className="grid gap-2">
+          <Label htmlFor={`rc-min-${category.id}`}>每筆報名人數下限</Label>
+          <Input
+            id={`rc-min-${category.id}`}
+            name="min_members"
+            type="number"
+            min={1}
+            defaultValue={category.min_members}
+          />
+        </div>
+        <div className="grid gap-2">
           <Label htmlFor={`rc-max-${category.id}`}>每筆報名人數上限</Label>
           <Input
             id={`rc-max-${category.id}`}
@@ -129,6 +139,10 @@ export function RegistrationCategoryEditor({
         <div className="grid gap-2">
           <Label htmlFor="rc-new-label">類別名稱</Label>
           <Input id="rc-new-label" name="label" required placeholder="例：自搭帳篷" />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="rc-new-min">每筆報名人數下限</Label>
+          <Input id="rc-new-min" name="min_members" type="number" min={1} defaultValue={1} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="rc-new-max">每筆報名人數上限</Label>

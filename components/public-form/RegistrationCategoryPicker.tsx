@@ -58,7 +58,8 @@ export function RegistrationCategoryPicker({
                 {c.label}
               </div>
               <div className="text-muted-foreground text-sm">
-                每筆最多 {c.max_members} 人{c.isFull ? "・已額滿" : ""}
+                {c.min_members > 1 ? `每筆 ${c.min_members}～${c.max_members} 人` : `每筆最多 ${c.max_members} 人`}
+                {c.isFull ? "・已額滿" : ""}
               </div>
             </button>
           );

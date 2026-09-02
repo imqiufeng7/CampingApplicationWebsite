@@ -90,6 +90,17 @@ export function SessionForm({
         />
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="min_members_per_registration">每筆報名人數下限</Label>
+        <Input
+          id="min_members_per_registration"
+          name="min_members_per_registration"
+          type="number"
+          min={1}
+          required
+          defaultValue={session?.min_members_per_registration ?? 1}
+        />
+      </div>
+      <div className="grid gap-2">
         <Label htmlFor="max_members_per_registration">每筆報名人數上限</Label>
         <Input
           id="max_members_per_registration"

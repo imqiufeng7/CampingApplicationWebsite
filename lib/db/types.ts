@@ -68,6 +68,7 @@ export interface Database {
           fee_base: number;
           fee_discount_per_person: number;
           max_members_per_registration: number;
+          min_members_per_registration: number;
           managing_org: string | null;
           status: EventSessionStatus;
           banner_image_path: string | null;
@@ -138,6 +139,7 @@ export interface Database {
           session_id: string;
           label: string;
           max_members: number;
+          min_members: number;
           capacity_total: number | null;
           admission_quota: number | null;
           is_free: boolean;

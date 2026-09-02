@@ -74,6 +74,7 @@ export function RegistrationForm({
   const hasCategories = registrationCategories.length > 0;
   const selectedCategory = registrationCategories.find((c) => c.id === selectedCategoryId);
   const maxMembers = hasCategories ? (selectedCategory?.max_members ?? 1) : session.max_members_per_registration;
+  const minMembers = hasCategories ? (selectedCategory?.min_members ?? 1) : session.min_members_per_registration;
   const hideFeeCategory = hasCategories && (selectedCategory?.is_free ?? false);
 
   const schema = useMemo(
@@ -348,10 +349,14 @@ export function RegistrationForm({
             identityTypes={identityTypes}
             feeCategories={feeCategories}
             hideFeeCategory={hideFeeCategory}
-            removable={index > 0}
+            removable={index > 0 && fields.length > minMembers}
             onRemove={() => remove(index)}
           />
         ))}
+
+        {fields.length < minMembers && (
+          <p className="text-muted-foreground text-sm">此類別至少需要 {minMembers} 人才能報名</p>
+        )}
 
         {fields.length < maxMembers && (
           <Button

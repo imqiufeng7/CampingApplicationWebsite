@@ -55,6 +55,7 @@ export const sessionSchema = z.object({
   fee_base: z.coerce.number().min(0).default(0),
   fee_discount_per_person: z.coerce.number().min(0).default(0),
   max_members_per_registration: z.coerce.number().int().min(1).default(1),
+  min_members_per_registration: z.coerce.number().int().min(1).default(1),
   managing_org: z.string().optional(),
   status: z.enum(["draft", "open", "closed", "archived"]),
   consent_gate_text: optionalRichText,
@@ -68,6 +69,9 @@ export const sessionSchema = z.object({
   redirect_url: optionalText,
   redirect_label: optionalText,
   theme_color: optionalText,
+}).refine((v) => v.min_members_per_registration <= v.max_members_per_registration, {
+  message: "人數下限不能大於上限",
+  path: ["min_members_per_registration"],
 });
 
 export type SessionFormValues = z.infer<typeof sessionSchema>;
@@ -96,10 +100,14 @@ export type FeeCategoryFormValues = z.infer<typeof feeCategorySchema>;
 export const registrationCategorySchema = z.object({
   label: z.string().min(1, "請輸入報名類別名稱"),
   max_members: z.coerce.number().int().min(1).default(1),
+  min_members: z.coerce.number().int().min(1).default(1),
   capacity_total: optionalInt,
   admission_quota: optionalInt,
   is_free: z.boolean().default(false),
   sort_order: z.coerce.number().int().default(0),
+}).refine((v) => v.min_members <= v.max_members, {
+  message: "人數下限不能大於上限",
+  path: ["min_members"],
 });
 
 export type RegistrationCategoryFormValues = z.infer<typeof registrationCategorySchema>;
