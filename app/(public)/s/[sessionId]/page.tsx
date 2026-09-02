@@ -3,6 +3,23 @@ import { createClient } from "@/lib/supabase/server";
 import { RegistrationForm } from "@/components/public-form/RegistrationForm";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 
+function CapacityFullNotice({ description }: { description: string }) {
+  return (
+    <div className="mx-auto max-w-md p-8 text-center">
+      <h1 className="text-lg font-medium">報名名額已滿</h1>
+      <p className="text-muted-foreground mt-2 text-sm">{description}</p>
+      <a
+        href="https://changhuadp.com/Home/ListPage?pageCode=AG"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary mt-4 inline-block text-sm underline"
+      >
+        彰化縣防災資訊網
+      </a>
+    </div>
+  );
+}
+
 // Overrides the root layout's generic "報名系統 / 客製化活動報名系統" for this one
 // route — that generic text is what shows up as the title/description when this
 // link's card gets previewed (LINE, etc.), which isn't useful for telling one
@@ -104,14 +121,7 @@ export default async function PublicRegistrationPage({
     });
 
     if ((count ?? 0) >= session.capacity_total) {
-      return (
-        <div className="mx-auto max-w-md p-8 text-center">
-          <h1 className="text-lg font-medium">報名名額已滿</h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            此場次報名人數已達上限，如有名額釋出將由主辦單位另行公告。
-          </p>
-        </div>
-      );
+      return <CapacityFullNotice description="此場次報名人數已達上限，如有名額釋出將由主辦單位另行公告。" />;
     }
   }
 
@@ -133,14 +143,7 @@ export default async function PublicRegistrationPage({
 
     // All categories full — same "額滿" gate as the no-categories path above.
     if (categoriesWithAvailability.every((rc) => rc.isFull)) {
-      return (
-        <div className="mx-auto max-w-md p-8 text-center">
-          <h1 className="text-lg font-medium">報名名額已滿</h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            此場次各類別報名人數皆已達上限，如有名額釋出將由主辦單位另行公告。
-          </p>
-        </div>
-      );
+      return <CapacityFullNotice description="此場次各類別報名人數皆已達上限，如有名額釋出將由主辦單位另行公告。" />;
     }
   }
 
