@@ -39,7 +39,7 @@ export function RegistrationCategoryPicker({
                 selected
                   ? "shadow-md"
                   : c.isFull
-                    ? "border-border opacity-50"
+                    ? "border-border bg-muted grayscale cursor-not-allowed"
                     : "border-border hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-sm"
               )}
             >
@@ -51,7 +51,10 @@ export function RegistrationCategoryPicker({
                   ✓
                 </span>
               )}
-              <div className="font-bold" style={{ color: selected ? accent : undefined }}>
+              <div
+                className={cn("font-bold", c.isFull && "text-muted-foreground")}
+                style={{ color: selected ? accent : undefined }}
+              >
                 {c.label}
               </div>
               <div className="text-muted-foreground text-sm">
