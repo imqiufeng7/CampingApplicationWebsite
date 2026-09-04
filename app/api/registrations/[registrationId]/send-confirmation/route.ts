@@ -62,6 +62,7 @@ export async function POST(
     contactPhone: registration.contact_phone,
     members: (members ?? []).map((m) => ({ name: m.name })),
     editUrl: `${siteUrl}/edit/${registration.edit_token}`,
+    lookupUrl: `${siteUrl}/lookup?email=${encodeURIComponent(registration.contact_email)}&no=${registrationNo}`,
   });
 
   const template = await getEmailTemplate(admin, "報名確認", registration.session_id, {

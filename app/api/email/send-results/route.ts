@@ -146,6 +146,16 @@ export async function POST(request: Request) {
 
     if (result.status === "sent") {
       sent += 1;
+      // Gates the public /lookup page — it keeps showing "審核中" for this
+      // registration until this notice has actually gone out, regardless of how
+      // long ago the review itself was completed. Only ever set forward, never
+      // cleared, so a later resend doesn't re-embargo an already-published result.
+      if (!registration.result_published_at) {
+        await admin
+          .from("registrations")
+          .update({ result_published_at: new Date().toISOString() })
+          .eq("id", registration.id);
+      }
     } else {
       failed += 1;
     }

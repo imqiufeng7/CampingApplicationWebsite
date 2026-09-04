@@ -202,6 +202,7 @@ export interface Database {
           payment_amount: number;
           payment_method: PaymentMethod | null;
           payment_deadline: string | null;
+          result_published_at: string | null;
           ecpay_trade_no: string | null;
           ecpay_link: string | null;
           ecpay_merchant_trade_no: string | null;
@@ -242,6 +243,7 @@ export interface Database {
             | "payment_amount"
             | "payment_method"
             | "payment_deadline"
+            | "result_published_at"
             | "ecpay_trade_no"
             | "ecpay_link"
             | "ecpay_merchant_trade_no"

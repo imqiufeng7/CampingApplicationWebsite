@@ -18,7 +18,16 @@ const TYPE_LABELS: Record<EmailType, string> = {
 };
 
 const PLACEHOLDERS: Partial<Record<EmailType, string[]>> = {
-  報名確認: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "第一位成員姓名", "成員名單", "修改連結"],
+  報名確認: [
+    "活動名稱",
+    "報名編號",
+    "聯絡Email",
+    "聯絡電話",
+    "第一位成員姓名",
+    "成員名單",
+    "修改連結",
+    "查詢連結",
+  ],
   "審核結果-正取": ["活動名稱", "活動日期", "第一位成員姓名", "錄取結果", "成員審核結果", "繳費資訊"],
   "審核結果-備取": ["活動名稱", "活動日期", "第一位成員姓名", "錄取結果", "成員審核結果", "繳費資訊"],
   退回補件: ["活動名稱", "報名編號", "補件原因", "修改連結"],
@@ -36,6 +45,7 @@ const SAMPLE_VARS: Partial<Record<EmailType, Record<string, string>>> = {
     第一位成員姓名: "王小明",
     成員名單: "1. 王小明\n2. 陳小華",
     修改連結: "https://example.com/edit/abc123",
+    查詢連結: "https://example.com/lookup?email=example@mail.com&no=R000123",
   },
   "審核結果-正取": {
     活動名稱: "2026年防災教育營",

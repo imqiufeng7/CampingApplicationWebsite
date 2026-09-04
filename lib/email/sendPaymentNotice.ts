@@ -24,7 +24,7 @@ export async function sendPaymentNoticeEmail(
   const { data: registration } = await admin
     .from("registrations")
     .select(
-      "id, session_id, contact_email, admission_status, waitlist_rank, payment_amount, payment_method, payment_deadline, ecpay_link"
+      "id, session_id, contact_email, admission_status, waitlist_rank, payment_amount, payment_method, payment_deadline, ecpay_link, result_published_at"
     )
     .eq("id", registrationId)
     .maybeSingle();
@@ -105,5 +105,16 @@ export async function sendPaymentNoticeEmail(
   if (result.status !== "sent") {
     return { ok: false, error: result.errorMessage ?? "寄送失敗" };
   }
+
+  // Same publish gate as the batch send-results route — this path is normally only
+  // used to resend/remind after that batch already ran, but stamp it defensively in
+  // case it's ever invoked first.
+  if (!registration.result_published_at) {
+    await admin
+      .from("registrations")
+      .update({ result_published_at: new Date().toISOString() })
+      .eq("id", registrationId);
+  }
+
   return { ok: true };
 }

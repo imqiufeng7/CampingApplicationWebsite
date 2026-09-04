@@ -67,8 +67,10 @@ export function RegistrationForm({
   const [submitResult, setSubmitResult] = useState<{
     registrationId: string;
     registrationNo: string;
+    contactEmail: string;
   } | null>(null);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
   const activityTitle = seriesName ? `${seriesName}-${session.name}` : session.name;
   const hasCategories = registrationCategories.length > 0;
@@ -140,7 +142,11 @@ export function RegistrationForm({
     }
 
     const row = (data as { registration_id: string; registration_no: string }[])[0];
-    setSubmitResult({ registrationId: row.registration_id, registrationNo: row.registration_no });
+    setSubmitResult({
+      registrationId: row.registration_id,
+      registrationNo: row.registration_no,
+      contactEmail: values.contact_email,
+    });
 
     // Best-effort — the confirmation email (with the edit link) isn't required for the
     // submission itself to have succeeded, so a failure here doesn't block the success
@@ -160,6 +166,23 @@ export function RegistrationForm({
       setResendState(res.ok ? "sent" : "error");
     } catch {
       setResendState("error");
+    }
+  }
+
+  // A page can't trigger the browser's native "Save As" itself — copying a link the
+  // registrant can paste into their own notes/chat-to-self is the practical
+  // equivalent, and pre-filling it means one click gets them straight to their result
+  // later instead of retyping their email and registration number.
+  async function handleCopyLookupLink() {
+    if (!submitResult) return;
+    const url = `${window.location.origin}/lookup?email=${encodeURIComponent(
+      submitResult.contactEmail
+    )}&no=${submitResult.registrationNo}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
     }
   }
 
@@ -202,6 +225,13 @@ export function RegistrationForm({
                 : resendState === "sent"
                   ? "已重新寄出"
                   : "將報名資料副本寄到我的 Email"}
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={handleCopyLookupLink}>
+              {copyState === "copied"
+                ? "已複製，可貼到記事本或傳給自己"
+                : copyState === "error"
+                  ? "複製失敗，請手動記下報名編號"
+                  : "複製我的查詢連結（審核結果公布後查詢用）"}
             </Button>
             {session.redirect_url && (
               <a href={session.redirect_url} target="_blank" rel="noopener noreferrer">

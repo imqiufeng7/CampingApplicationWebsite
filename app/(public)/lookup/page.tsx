@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,23 +99,24 @@ function ResultDetails({ result }: { result: LookupResult }) {
   );
 }
 
-export default function LookupPage() {
-  const [email, setEmail] = useState("");
-  const [registrationNo, setRegistrationNo] = useState("");
+function LookupForm() {
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const [registrationNo, setRegistrationNo] = useState(searchParams.get("no") ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LookupResult | null>(null);
   const [searched, setSearched] = useState(false);
+  const autoRanRef = useRef(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function runLookup(lookupEmail: string, lookupNo: string) {
     setSubmitting(true);
     setError(null);
 
     const supabase = createClient();
     const { data, error: rpcError } = await supabase.rpc("fn_lookup_registration_result", {
-      p_email: email.trim(),
-      p_registration_no: registrationNo.trim(),
+      p_email: lookupEmail.trim(),
+      p_registration_no: lookupNo.trim(),
     });
 
     setSubmitting(false);
@@ -129,6 +131,28 @@ export default function LookupPage() {
     }
 
     setResult(data as unknown as LookupResult | null);
+  }
+
+  // Lets a saved/shared lookup link (e.g. from the confirmation email, or the "複製
+  // 查詢連結" button on the success screen) go straight to the result in one click
+  // instead of making the registrant retype their own email and registration number.
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    const qEmail = searchParams.get("email");
+    const qNo = searchParams.get("no");
+    if (!qEmail || !qNo) return;
+    autoRanRef.current = true;
+    // Deferred to a microtask so this effect doesn't itself synchronously trigger the
+    // setSubmitting/setError state updates inside runLookup.
+    queueMicrotask(() => {
+      runLookup(qEmail, qNo);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    runLookup(email, registrationNo);
   }
 
   return (
@@ -182,5 +206,13 @@ export default function LookupPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LookupPage() {
+  return (
+    <Suspense>
+      <LookupForm />
+    </Suspense>
   );
 }

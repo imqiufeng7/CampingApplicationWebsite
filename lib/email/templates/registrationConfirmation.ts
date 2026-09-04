@@ -9,6 +9,7 @@ export interface RegistrationConfirmationEmailInput {
   contactPhone: string;
   members: RegistrationConfirmationMemberInfo[];
   editUrl: string;
+  lookupUrl: string;
 }
 
 // Fallback only — matches the row seeded by the email_templates migration, used if
@@ -30,6 +31,9 @@ export const DEFAULT_REGISTRATION_CONFIRMATION_BODY = `{{第一位成員姓名}}
 
 請妥善保存此連結，勿轉發給他人，任何人持有此連結皆可修改您的報名資料。
 
+審核結果公布後，可至以下連結查詢：
+{{查詢連結}}
+
 如有任何疑問，請洽詢主辦單位。
 `;
 
@@ -48,5 +52,6 @@ export function buildRegistrationConfirmationVars(
     第一位成員姓名: input.members[0]?.name ?? "",
     成員名單: input.members.map((m, i) => `${i + 1}. ${m.name}`).join("\n"),
     修改連結: input.editUrl,
+    查詢連結: input.lookupUrl,
   };
 }
