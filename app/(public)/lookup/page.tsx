@@ -68,7 +68,6 @@ function ResultDetails({ result }: { result: LookupResult }) {
     sessionDateStart: result.session_date_start,
     sessionDateEnd: result.session_date_end,
     admissionStatus: result.admission_status,
-    waitlistRank: result.waitlist_rank,
     members: result.members.map((m) => ({
       name: m.name,
       feeReviewResult: m.fee_review_result,
@@ -102,21 +101,21 @@ function ResultDetails({ result }: { result: LookupResult }) {
 function LookupForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
-  const [registrationNo, setRegistrationNo] = useState(searchParams.get("no") ?? "");
+  const [phone, setPhone] = useState(searchParams.get("phone") ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<LookupResult | null>(null);
+  const [results, setResults] = useState<LookupResult[] | null>(null);
   const [searched, setSearched] = useState(false);
   const autoRanRef = useRef(false);
 
-  async function runLookup(lookupEmail: string, lookupNo: string) {
+  async function runLookup(lookupEmail: string, lookupPhone: string) {
     setSubmitting(true);
     setError(null);
 
     const supabase = createClient();
-    const { data, error: rpcError } = await supabase.rpc("fn_lookup_registration_result", {
+    const { data, error: rpcError } = await supabase.rpc("fn_lookup_registration_results", {
       p_email: lookupEmail.trim(),
-      p_registration_no: lookupNo.trim(),
+      p_phone: lookupPhone.trim(),
     });
 
     setSubmitting(false);
@@ -126,33 +125,33 @@ function LookupForm() {
       setError(
         rpcError.message.includes("too many") ? "查詢過於頻繁，請稍後再試。" : "查詢失敗，請稍後再試。"
       );
-      setResult(null);
+      setResults(null);
       return;
     }
 
-    setResult(data as unknown as LookupResult | null);
+    setResults((data as unknown as LookupResult[]) ?? []);
   }
 
   // Lets a saved/shared lookup link (e.g. from the confirmation email, or the "複製
   // 查詢連結" button on the success screen) go straight to the result in one click
-  // instead of making the registrant retype their own email and registration number.
+  // instead of making the registrant retype their own email and phone number.
   useEffect(() => {
     if (autoRanRef.current) return;
     const qEmail = searchParams.get("email");
-    const qNo = searchParams.get("no");
-    if (!qEmail || !qNo) return;
+    const qPhone = searchParams.get("phone");
+    if (!qEmail || !qPhone) return;
     autoRanRef.current = true;
     // Deferred to a microtask so this effect doesn't itself synchronously trigger the
     // setSubmitting/setError state updates inside runLookup.
     queueMicrotask(() => {
-      runLookup(qEmail, qNo);
+      runLookup(qEmail, qPhone);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    runLookup(email, registrationNo);
+    runLookup(email, phone);
   }
 
   return (
@@ -174,12 +173,12 @@ function LookupForm() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="lookup-no">報名編號（例：R000123，可於報名確認信中找到）</Label>
+              <Label htmlFor="lookup-phone">報名時填寫的聯絡電話</Label>
               <Input
-                id="lookup-no"
+                id="lookup-phone"
                 required
-                value={registrationNo}
-                onChange={(e) => setRegistrationNo(e.target.value)}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
             <Button type="submit" disabled={submitting} className="w-full">
@@ -189,18 +188,27 @@ function LookupForm() {
 
           {error && <p className="text-destructive text-sm">{error}</p>}
 
-          {searched && !error && !result && (
+          {searched && !error && results?.length === 0 && (
             <p className="text-muted-foreground text-sm">
-              查無報名資料，請確認 Email 與報名編號是否正確，或洽詢主辦單位。
+              查無報名資料，請確認 Email 與聯絡電話是否正確，或洽詢主辦單位。
             </p>
           )}
 
-          {result && (
-            <div className="grid gap-2 border-t pt-4">
-              <p className="text-muted-foreground text-sm">
-                {result.session_name}・{result.registration_no}
-              </p>
-              <ResultDetails result={result} />
+          {results && results.length > 0 && (
+            <div className="grid gap-4">
+              {results.length > 1 && (
+                <p className="text-muted-foreground text-xs">
+                  這組 Email/電話共有 {results.length} 筆報名紀錄：
+                </p>
+              )}
+              {results.map((result) => (
+                <div key={result.registration_id} className="grid gap-2 border-t pt-4">
+                  <p className="text-muted-foreground text-sm">
+                    {result.session_name}・{result.registration_no}
+                  </p>
+                  <ResultDetails result={result} />
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

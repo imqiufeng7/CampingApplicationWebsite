@@ -27,6 +27,7 @@ export type EmailType =
   | "遞補通知"
   | "報名確認"
   | "退回補件"
+  | "開放修改"
   | "管理員邀請";
 export type EmailStatus = "pending" | "sent" | "failed";
 
@@ -203,6 +204,7 @@ export interface Database {
           payment_method: PaymentMethod | null;
           payment_deadline: string | null;
           result_published_at: string | null;
+          remaining_self_edits: number;
           ecpay_trade_no: string | null;
           ecpay_link: string | null;
           ecpay_merchant_trade_no: string | null;
@@ -244,6 +246,7 @@ export interface Database {
             | "payment_method"
             | "payment_deadline"
             | "result_published_at"
+            | "remaining_self_edits"
             | "ecpay_trade_no"
             | "ecpay_link"
             | "ecpay_merchant_trade_no"
@@ -494,9 +497,9 @@ export interface Database {
         Args: { p_session_id: string };
         Returns: { registration_category_id: string; registration_count: number }[];
       };
-      fn_lookup_registration_result: {
-        Args: { p_email: string; p_registration_no: string };
-        Returns: Record<string, unknown> | null;
+      fn_lookup_registration_results: {
+        Args: { p_email: string; p_phone: string };
+        Returns: Record<string, unknown>[];
       };
     };
   };

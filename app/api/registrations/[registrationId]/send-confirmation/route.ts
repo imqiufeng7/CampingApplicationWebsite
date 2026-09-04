@@ -25,7 +25,7 @@ export async function POST(
 
   const { data: registration } = await admin
     .from("registrations")
-    .select("id, session_id, contact_email, contact_phone, registration_seq, edit_token")
+    .select("id, session_id, contact_email, contact_phone, registration_seq")
     .eq("id", registrationId)
     .maybeSingle();
 
@@ -61,8 +61,7 @@ export async function POST(
     contactEmail: registration.contact_email,
     contactPhone: registration.contact_phone,
     members: (members ?? []).map((m) => ({ name: m.name })),
-    editUrl: `${siteUrl}/edit/${registration.edit_token}`,
-    lookupUrl: `${siteUrl}/lookup?email=${encodeURIComponent(registration.contact_email)}&no=${registrationNo}`,
+    lookupUrl: `${siteUrl}/lookup?email=${encodeURIComponent(registration.contact_email)}&phone=${encodeURIComponent(registration.contact_phone)}`,
   });
 
   const template = await getEmailTemplate(admin, "報名確認", registration.session_id, {

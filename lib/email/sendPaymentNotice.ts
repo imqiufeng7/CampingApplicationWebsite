@@ -24,7 +24,7 @@ export async function sendPaymentNoticeEmail(
   const { data: registration } = await admin
     .from("registrations")
     .select(
-      "id, session_id, contact_email, admission_status, waitlist_rank, payment_amount, payment_method, payment_deadline, ecpay_link, result_published_at"
+      "id, session_id, contact_email, admission_status, payment_amount, payment_method, payment_deadline, ecpay_link, result_published_at"
     )
     .eq("id", registrationId)
     .maybeSingle();
@@ -68,7 +68,6 @@ export async function sendPaymentNoticeEmail(
     sessionDateEnd: session?.date_end ?? null,
     feeDiscountPerPerson: session?.fee_discount_per_person ?? 0,
     admissionStatus: registration.admission_status,
-    waitlistRank: registration.waitlist_rank,
     members: (members ?? []).map((m) => ({
       name: m.name,
       feeReviewResult: m.fee_review_result,

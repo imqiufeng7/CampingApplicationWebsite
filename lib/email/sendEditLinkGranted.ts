@@ -5,20 +5,20 @@ import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
 import {
-  buildResubmissionRequestVars,
-  DEFAULT_RESUBMISSION_REQUEST_SUBJECT,
-  DEFAULT_RESUBMISSION_REQUEST_BODY,
-} from "@/lib/email/templates/resubmissionRequest";
+  buildEditLinkGrantedVars,
+  DEFAULT_EDIT_LINK_GRANTED_SUBJECT,
+  DEFAULT_EDIT_LINK_GRANTED_BODY,
+} from "@/lib/email/templates/editLinkGranted";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 
-// Composes the notice from whichever members are currently flagged
-// needs_resubmission=true (each with their own reviewer-written note) — different
-// people in the same registration can have different document problems, so this is
-// no longer a single registration-level reason. Called by the sendResubmissionNotice
-// server action, which the document dialog's "寄送補件通知" button invokes directly.
-export async function sendResubmissionRequestEmail(
+// General-purpose counterpart to sendResubmissionRequestEmail — that one only ever
+// fires from the 退回補件 workflow (requires flagged members with a note); this is for
+// any other reason staff need to reopen editing once (e.g. a phone call asking to
+// swap a member close to the event). Both grant exactly one save the same way.
+export async function sendEditLinkGrantedEmail(
   admin: SupabaseClient<Database>,
-  registrationId: string
+  registrationId: string,
+  reason: string
 ): Promise<{ ok: boolean; error?: string }> {
   const { data: registration } = await admin
     .from("registrations")
@@ -30,21 +30,6 @@ export async function sendResubmissionRequestEmail(
     return { ok: false, error: "找不到報名資料" };
   }
 
-  const { data: flaggedMembers } = await admin
-    .from("registration_members")
-    .select("name, resubmission_note")
-    .eq("registration_id", registrationId)
-    .eq("needs_resubmission", true)
-    .order("member_order", { ascending: true });
-
-  const memberIssues = (flaggedMembers ?? [])
-    .filter((m) => m.resubmission_note)
-    .map((m) => ({ name: m.name, note: m.resubmission_note as string }));
-
-  if (memberIssues.length === 0) {
-    return { ok: false, error: "目前沒有成員被標記需補件，或尚未填寫補件原因" };
-  }
-
   const { data: session } = await admin
     .from("event_sessions")
     .select("name")
@@ -52,16 +37,16 @@ export async function sendResubmissionRequestEmail(
     .maybeSingle();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const vars = buildResubmissionRequestVars({
+  const vars = buildEditLinkGrantedVars({
     sessionName: session?.name ?? "",
     registrationNo: formatRegistrationNo(registration.registration_seq),
-    memberIssues,
+    reason,
     editUrl: `${siteUrl}/edit/${registration.edit_token}`,
   });
 
-  const template = await getEmailTemplate(admin, "退回補件", registration.session_id, {
-    subjectTemplate: DEFAULT_RESUBMISSION_REQUEST_SUBJECT,
-    bodyTemplate: DEFAULT_RESUBMISSION_REQUEST_BODY,
+  const template = await getEmailTemplate(admin, "開放修改", registration.session_id, {
+    subjectTemplate: DEFAULT_EDIT_LINK_GRANTED_SUBJECT,
+    bodyTemplate: DEFAULT_EDIT_LINK_GRANTED_BODY,
   });
   const subject = renderTemplate(template.subjectTemplate, vars);
   const body = renderHtmlTemplate(template.bodyTemplate, vars);
@@ -71,7 +56,7 @@ export async function sendResubmissionRequestEmail(
 
   await admin.from("email_logs").insert({
     registration_id: registrationId,
-    type: "退回補件",
+    type: "開放修改",
     status: result.status,
     sent_at: result.status === "sent" ? new Date().toISOString() : null,
     error_message: result.errorMessage ?? null,
@@ -83,9 +68,6 @@ export async function sendResubmissionRequestEmail(
     return { ok: false, error: result.errorMessage ?? "寄送失敗" };
   }
 
-  // The edit link in this email is otherwise dead — every registration starts locked
-  // (remaining_self_edits = 0) and only ever opens for exactly one save at the moment
-  // a notice like this actually goes out, same principle as result_published_at.
   await admin.from("registrations").update({ remaining_self_edits: 1 }).eq("id", registrationId);
 
   return { ok: true };

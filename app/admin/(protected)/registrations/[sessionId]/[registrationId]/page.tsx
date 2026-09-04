@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ReviewPanel } from "@/components/admin/ReviewPanel";
 import { PaymentPanel } from "@/components/admin/PaymentPanel";
 import { MemberReviewRow } from "@/components/admin/MemberReviewRow";
+import { GrantEditLinkButton } from "@/components/admin/GrantEditLinkButton";
 import { RichContent } from "@/components/public-form/RichContent";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { sortRegistrationsForReview } from "@/lib/reviewSort";
@@ -129,6 +130,15 @@ export default async function RegistrationDetailPage({
           <p className="text-muted-foreground text-sm">
             {registration.contact_email} · {registration.contact_phone}
           </p>
+          {!paymentOnly && admin.fieldPermissions["備註"] === "editable" && (
+            <div className="mt-2">
+              <GrantEditLinkButton
+                sessionId={sessionId}
+                registrationId={registrationId}
+                remainingSelfEdits={registration.remaining_self_edits}
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 text-sm">
           {prevId ? (

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, requireFieldEditable, requireRole, requireSessionAccess } from "@/lib/auth/guards";
 import { sendResubmissionRequestEmail } from "@/lib/email/sendResubmissionRequest";
 import { sendPaymentNoticeEmail } from "@/lib/email/sendPaymentNotice";
+import { sendEditLinkGrantedEmail } from "@/lib/email/sendEditLinkGranted";
 import { taipeiInputValueToIso } from "@/lib/timezone";
 import { deleteRegistrationStorageFiles } from "@/lib/deleteRegistrationFiles";
 
@@ -240,6 +241,35 @@ export async function sendResubmissionNotice(
   if (!result.ok) {
     return { error: result.error ?? "寄送失敗" };
   }
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// One-time edit re-open — every registration starts locked (remaining_self_edits = 0)
+// and 退回補件 is the only path that reopens it automatically; this is the general
+// escape hatch for everything else (a phone call asking to swap a member close to the
+// event, a typo the registrant can't otherwise fix) — host_org (and vendor).
+// ---------------------------------------------------------------------------
+export async function grantOneMoreEdit(
+  sessionId: string,
+  registrationId: string,
+  reason: string
+): Promise<ActionState> {
+  const admin = await requireAdmin();
+  await requireFieldEditable(admin, "備註");
+  await requireSessionAccess(sessionId);
+
+  if (!reason.trim()) {
+    return { error: "請填寫開放修改的原因" };
+  }
+
+  const adminClient = createAdminClient();
+  const result = await sendEditLinkGrantedEmail(adminClient, registrationId, reason.trim());
+  if (!result.ok) {
+    return { error: result.error ?? "寄送失敗" };
+  }
+
+  revalidatePath(`/admin/registrations/${sessionId}/${registrationId}`);
   return { error: null };
 }
 

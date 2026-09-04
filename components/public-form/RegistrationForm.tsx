@@ -68,6 +68,7 @@ export function RegistrationForm({
     registrationId: string;
     registrationNo: string;
     contactEmail: string;
+    contactPhone: string;
   } | null>(null);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -146,6 +147,7 @@ export function RegistrationForm({
       registrationId: row.registration_id,
       registrationNo: row.registration_no,
       contactEmail: values.contact_email,
+      contactPhone: values.contact_phone,
     });
 
     // Best-effort — the confirmation email (with the edit link) isn't required for the
@@ -172,12 +174,12 @@ export function RegistrationForm({
   // A page can't trigger the browser's native "Save As" itself — copying a link the
   // registrant can paste into their own notes/chat-to-self is the practical
   // equivalent, and pre-filling it means one click gets them straight to their result
-  // later instead of retyping their email and registration number.
+  // later instead of retyping their email and phone number.
   async function handleCopyLookupLink() {
     if (!submitResult) return;
     const url = `${window.location.origin}/lookup?email=${encodeURIComponent(
       submitResult.contactEmail
-    )}&no=${submitResult.registrationNo}`;
+    )}&phone=${encodeURIComponent(submitResult.contactPhone)}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopyState("copied");

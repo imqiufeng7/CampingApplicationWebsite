@@ -29,5 +29,6 @@ export interface EditRegistrationData {
   is_cancelled: boolean;
   payment_status: string;
   admission_status: string;
+  remaining_self_edits: number;
   members: EditRegistrationMemberData[];
 }

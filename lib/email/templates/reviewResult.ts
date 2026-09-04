@@ -21,7 +21,6 @@ export interface ReviewResultEmailInput {
   sessionDateStart: string | null;
   sessionDateEnd: string | null;
   admissionStatus: AdmissionStatus;
-  waitlistRank: number | null;
   members: ReviewResultMemberInfo[];
   // Flat per-paying-member fee (event_sessions.fee_discount_per_person) — the same
   // figure fn_recompute_registration_payment multiplies by the paying-member count to
@@ -78,7 +77,7 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     input.admissionStatus === "正取"
       ? "您已錄取本次活動（正取）。"
       : input.admissionStatus === "備取"
-        ? `您目前為備取名單，備取順位第 ${input.waitlistRank ?? "-"} 位，若有名額釋出將另行通知。`
+        ? "您目前為備取名單，若有名額釋出將另行通知。"
         : "審核結果請見以下說明。";
 
   const memberLines = input.members

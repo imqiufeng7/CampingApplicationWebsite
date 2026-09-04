@@ -111,7 +111,6 @@ export async function POST(request: Request) {
       sessionDateEnd: session?.date_end ?? null,
       feeDiscountPerPerson: session?.fee_discount_per_person ?? 0,
       admissionStatus: registration.admission_status,
-      waitlistRank: registration.waitlist_rank,
       members: (members ?? []).map((m) => ({
         name: m.name,
         feeReviewResult: m.fee_review_result,

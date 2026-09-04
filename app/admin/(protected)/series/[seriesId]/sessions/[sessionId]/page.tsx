@@ -16,8 +16,8 @@ import type { EmailType } from "@/lib/db/types";
 const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: string[] }[] = [
   {
     type: "報名確認",
-    label: "報名確認信（送出報名後立即寄出）",
-    placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "第一位成員姓名", "成員名單", "修改連結"],
+    label: "報名確認信（送出報名後立即寄出，含查詢連結）",
+    placeholders: ["活動名稱", "報名編號", "聯絡Email", "聯絡電話", "第一位成員姓名", "成員名單", "查詢連結"],
   },
   {
     type: "審核結果-正取",
@@ -31,8 +31,13 @@ const EMAIL_TEMPLATE_META: { type: EmailType; label: string; placeholders: strin
   },
   {
     type: "退回補件",
-    label: "需補件通知（審核設為「退回補件」時寄出）",
+    label: "需補件通知（審核設為「退回補件」時寄出，含修改連結）",
     placeholders: ["活動名稱", "報名編號", "補件原因", "修改連結"],
+  },
+  {
+    type: "開放修改",
+    label: "開放修改通知（後台手動「允許再修改一次」時寄出，含修改連結）",
+    placeholders: ["活動名稱", "報名編號", "開放原因", "修改連結"],
   },
 ];
 
