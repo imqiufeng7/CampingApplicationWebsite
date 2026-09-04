@@ -63,6 +63,13 @@ function ResultDetails({ result }: { result: LookupResult }) {
     );
   }
 
+  const ecpayLink =
+    result.admission_status === "正取" &&
+    result.payment_amount > 0 &&
+    result.payment_method === "online"
+      ? `${window.location.origin}/api/payments/ecpay/checkout/${result.registration_id}`
+      : null;
+
   const vars = buildReviewResultVars({
     sessionName: result.session_name,
     sessionDateStart: result.session_date_start,
@@ -77,10 +84,7 @@ function ResultDetails({ result }: { result: LookupResult }) {
     paymentAmount: result.payment_amount,
     paymentMethod: result.payment_method,
     paymentDeadline: result.payment_deadline,
-    ecpayLink:
-      result.payment_amount > 0 && result.payment_method === "online"
-        ? `${window.location.origin}/api/payments/ecpay/checkout/${result.registration_id}`
-        : null,
+    ecpayLink,
     manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
   });
 
@@ -89,11 +93,21 @@ function ResultDetails({ result }: { result: LookupResult }) {
   // correctly for 取消), but this page can say the actual outcome plainly.
   const admissionLine = result.admission_status === "取消" ? "很抱歉，本次報名未獲錄取。" : vars.錄取結果;
 
+  // vars.繳費資訊 embeds the checkout URL as plain text (fine for email, where mail
+  // clients auto-linkify bare URLs) — this page renders it inside a plain <div>, which
+  // browsers do not auto-linkify, so give online payments an actual clickable link too.
   return (
     <div className="grid gap-3 text-sm">
       <p className="font-medium">{admissionLine}</p>
       <div className="whitespace-pre-line">{vars.成員審核結果}</div>
       <div className="whitespace-pre-line">{vars.繳費資訊}</div>
+      {ecpayLink && (
+        <a href={ecpayLink} className="w-fit">
+          <Button type="button" size="sm">
+            前往線上繳費
+          </Button>
+        </a>
+      )}
     </div>
   );
 }
