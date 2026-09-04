@@ -492,6 +492,10 @@ export interface Database {
         Args: { p_session_id: string };
         Returns: { registration_category_id: string; registration_count: number }[];
       };
+      fn_lookup_registration_result: {
+        Args: { p_email: string; p_registration_no: string };
+        Returns: Record<string, unknown> | null;
+      };
     };
   };
 }
