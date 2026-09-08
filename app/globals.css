@@ -236,6 +236,60 @@
   --poster-green: #7cb342;
 }
 
+/* Larger, easier-to-read form controls for the public registration flow — a
+   meaningful share of registrants are older adults, for whom shadcn's default
+   sizing (32px-tall inputs, 14px labels) is a real barrier to filling the form
+   accurately. Scoped to .theme-public (rather than the shared ui/ primitives)
+   so the admin console's dense tables keep their compact defaults. Selectors use
+   data-slot attributes set by the wrapped components (Input/Textarea/Checkbox),
+   plus a plain `select` for the raw native <select> elements used directly in
+   the public form. Every field rendered through <FormControl> (i.e. everything
+   inside a <FormField>) has its data-slot overwritten to "form-control" by
+   ui/form.tsx's cloneElement — that's most fields in this form — so each rule
+   also matches on tag/role to still catch those; a bare data-slot selector alone
+   would silently miss them. Each selector's specificity (class + attribute)
+   beats the components' own single-class Tailwind utilities regardless of
+   source order. */
+.theme-public [data-slot="input"],
+.theme-public input[data-slot="form-control"],
+.theme-public [data-slot="textarea"],
+.theme-public textarea[data-slot="form-control"],
+.theme-public select {
+  height: 2.75rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-size: 1rem;
+}
+.theme-public [data-slot="textarea"],
+.theme-public textarea[data-slot="form-control"] {
+  height: auto;
+  min-height: 6rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.theme-public input[type="file"] {
+  height: auto;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.theme-public [data-slot="label"],
+.theme-public [data-slot="form-label"] {
+  font-size: 1rem;
+}
+.theme-public [data-slot="form-message"] {
+  font-size: 0.9375rem;
+}
+.theme-public [data-slot="checkbox"],
+.theme-public [role="checkbox"][data-slot="form-control"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.theme-public [data-slot="checkbox"] svg,
+.theme-public [role="checkbox"][data-slot="form-control"] svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 /* Soft multi-tone gradient (sky-blue + banner-yellow glows fading into the cream
    base) for the public form's page background — kept as its own class rather than
    folded into --background, since --background is also consumed as a flat fill by

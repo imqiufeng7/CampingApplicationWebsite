@@ -41,12 +41,17 @@ export function ConsentGate({
         <Button
           type="button"
           size="lg"
-          className="animate-pulse-cta rounded-full px-6 font-bold"
+          className="animate-pulse-cta h-12 rounded-full px-6 text-lg font-bold"
           onClick={onAgree}
         >
           我同意，開始報名
         </Button>
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => setDeclined(true)}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-full px-5 text-base"
+          onClick={() => setDeclined(true)}
+        >
           不同意
         </Button>
       </div>

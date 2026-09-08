@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const ITEM_HEIGHT = 36;
+const ITEM_HEIGHT = 44;
 const VISIBLE_COUNT = 5;
 const PADDING_COUNT = Math.floor(VISIBLE_COUNT / 2);
 
@@ -113,8 +113,8 @@ export function WheelColumn({
             key={opt.value}
             className={
               opt.value === value
-                ? "text-foreground flex items-center justify-center text-sm font-medium"
-                : "text-muted-foreground flex items-center justify-center text-sm"
+                ? "text-foreground flex items-center justify-center text-base font-medium"
+                : "text-muted-foreground flex items-center justify-center text-base"
             }
             style={{ height: ITEM_HEIGHT, scrollSnapAlign: "center" }}
           >

@@ -195,7 +195,7 @@ function LookupFormInner() {
                 onChange={(e) => setPhone(e.target.value)}
               />
             </div>
-            <Button type="submit" disabled={submitting} className="w-full">
+            <Button type="submit" disabled={submitting} className="h-11 w-full text-base">
               {submitting ? "查詢中..." : "查詢"}
             </Button>
           </form>

@@ -81,7 +81,7 @@ export function BirthDateCalendarPicker({
       <DialogTrigger render={<Button type="button" variant="outline" className="w-full justify-start font-normal" />}>
         {label}
       </DialogTrigger>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>選擇出生日期（民國）</DialogTitle>
         </DialogHeader>
@@ -89,7 +89,7 @@ export function BirthDateCalendarPicker({
           <div className="flex gap-2">
             <select
               aria-label="出生年（民國）"
-              className="border-input h-8 flex-1 rounded-lg border bg-transparent px-2 text-sm"
+              className="border-input h-11 flex-1 rounded-lg border bg-transparent px-2 text-base"
               value={viewYear}
               onChange={(e) => setViewYear(Number(e.target.value))}
             >
@@ -101,7 +101,7 @@ export function BirthDateCalendarPicker({
             </select>
             <select
               aria-label="出生月"
-              className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
+              className="border-input h-11 rounded-lg border bg-transparent px-2 text-base"
               value={viewMonth}
               onChange={(e) => setViewMonth(Number(e.target.value))}
             >
@@ -113,7 +113,7 @@ export function BirthDateCalendarPicker({
             </select>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+          <div className="grid grid-cols-7 gap-1 text-center text-sm">
             {WEEKDAY_LABELS.map((w) => (
               <div key={w} className="text-muted-foreground py-1">
                 {w}
@@ -131,8 +131,8 @@ export function BirthDateCalendarPicker({
                   onClick={() => selectDay(d)}
                   className={
                     selected
-                      ? "bg-primary text-primary-foreground rounded-md py-1.5"
-                      : "hover:bg-muted rounded-md py-1.5"
+                      ? "bg-primary text-primary-foreground rounded-md py-2.5"
+                      : "hover:bg-muted rounded-md py-2.5"
                   }
                 >
                   {d}

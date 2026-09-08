@@ -210,7 +210,7 @@ export function EditRegistrationForm({
           type="submit"
           disabled={form.formState.isSubmitting}
           size="lg"
-          className="rounded-full text-base font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+          className="h-12 rounded-full text-lg font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
         >
           {form.formState.isSubmitting ? "儲存中..." : "儲存修改"}
         </Button>

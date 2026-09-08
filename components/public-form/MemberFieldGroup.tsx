@@ -82,7 +82,7 @@ export function MemberFieldGroup({
           </Button>
         )
       }
-      contentClassName="grid gap-4 sm:grid-cols-2"
+      contentClassName="grid gap-5 sm:grid-cols-2"
     >
         {index === 0 && (
           <>

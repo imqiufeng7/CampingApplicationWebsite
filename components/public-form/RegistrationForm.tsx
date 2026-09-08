@@ -342,7 +342,7 @@ export function RegistrationForm({
         <Button
           type="button"
           variant="outline"
-          className="w-fit rounded-full"
+          className="h-11 w-fit rounded-full px-5 text-base"
           onClick={() => setAgreedToTerms(false)}
         >
           ← 上一步
@@ -394,7 +394,7 @@ export function RegistrationForm({
           <Button
             type="button"
             variant="outline"
-            className="border-primary/40 text-primary hover:bg-primary/10 rounded-full"
+            className="border-primary/40 text-primary hover:bg-primary/10 h-11 rounded-full px-5 text-base"
             onClick={() => append(emptyMember())}
           >
             + 新增成員
@@ -421,14 +421,14 @@ export function RegistrationForm({
           type="submit"
           disabled={form.formState.isSubmitting}
           size="lg"
-          className="rounded-full text-base font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+          className="h-12 rounded-full text-lg font-bold shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
         >
           {form.formState.isSubmitting ? "送出中..." : "🏕️ 送出報名"}
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="w-fit rounded-full"
+          className="h-11 w-fit rounded-full px-5 text-base"
           onClick={() => (hasCategories ? setSelectedCategoryId("") : setAgreedToTerms(false))}
         >
           ← 上一步

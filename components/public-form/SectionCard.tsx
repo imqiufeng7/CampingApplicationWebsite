@@ -29,11 +29,11 @@ export function SectionCard({
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="bg-secondary text-secondary-foreground flex items-center justify-between gap-2 px-5 py-3">
-        <h2 className="font-heading text-base font-bold">{title}</h2>
+      <div className="bg-secondary text-secondary-foreground flex items-center justify-between gap-2 px-5 py-4">
+        <h2 className="font-heading text-lg font-bold">{title}</h2>
         {action}
       </div>
-      <div className={cn("p-5 text-sm sm:p-6", contentClassName)}>{children}</div>
+      <div className={cn("p-6 text-base sm:p-7", contentClassName)}>{children}</div>
     </div>
   );
 }
