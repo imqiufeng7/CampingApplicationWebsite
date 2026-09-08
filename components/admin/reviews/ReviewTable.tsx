@@ -295,6 +295,8 @@ export function ReviewTable({
       admittedTotal: active.filter((r) => r.admission_status === "正取").length,
       selfSuppliedBags: active.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
       rentedBags: active.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
+      comfortBedNeededCount: active.filter((r) => r.comfort_bed_needed === "需要").length,
+      comfortBedNotNeededCount: active.filter((r) => r.comfort_bed_needed !== "需要").length,
     };
   }, [data, registrationCategoryMap]);
 
@@ -653,7 +655,7 @@ export function ReviewTable({
             </div>
           </div>
         )}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
           <StatPair
             primary={{ label: "已錄取", value: summary.admittedTotal }}
@@ -666,6 +668,10 @@ export function ReviewTable({
           <StatPair
             primary={{ label: "已取消", value: summary.cancelledCount }}
             secondary={{ label: "睡墊情況（自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
+          />
+          <StatPair
+            primary={{ label: "福慧床-需要借用", value: summary.comfortBedNeededCount }}
+            secondary={{ label: "不需要借用", value: summary.comfortBedNotNeededCount }}
           />
         </div>
       </div>
