@@ -27,7 +27,7 @@ export default async function ReviewListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, submitted_at, contact_email, contact_phone, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
+      "id, registration_seq, submitted_at, contact_email, contact_phone, comfort_bed_needed, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
     )
     .eq("session_id", sessionId);
 

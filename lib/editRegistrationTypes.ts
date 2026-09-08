@@ -26,6 +26,7 @@ export interface EditRegistrationData {
   registration_no: string;
   contact_email: string;
   contact_phone: string;
+  comfort_bed_needed: string;
   is_cancelled: boolean;
   payment_status: string;
   admission_status: string;

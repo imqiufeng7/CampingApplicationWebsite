@@ -128,7 +128,8 @@ export default async function RegistrationDetailPage({
             )}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {registration.contact_email} · {registration.contact_phone}
+            {registration.contact_email} · {registration.contact_phone} · 福慧床：
+            {registration.comfort_bed_needed}
           </p>
           {!paymentOnly && admin.fieldPermissions["備註"] === "editable" && (
             <div className="mt-2">

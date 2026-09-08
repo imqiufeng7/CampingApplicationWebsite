@@ -72,6 +72,7 @@ export type ReviewRow = {
   submitted_at: string;
   contact_email: string;
   contact_phone: string;
+  comfort_bed_needed: string;
   review_status: string;
   admission_status: string;
   waitlist_rank: number | null;

@@ -75,7 +75,7 @@ export function ExportMenu({
   function exportFull() {
     const headers = [
       "編號", "報名時間", "聯絡Email", "聯絡電話", "報名類別", "成員", "人數",
-      "審核結果", "錄取結果", "分組區域", "分組編號",
+      "審核結果", "錄取結果", "分組區域", "分組編號", "福慧床借用",
       "繳費狀態", "應繳金額", "是否取消", "取消原因", "備註",
     ];
     const data = rows.map((r) => [
@@ -90,6 +90,7 @@ export function ExportMenu({
       r.admission_status,
       r.group_zone ?? "",
       excelText(r.group_number ?? ""),
+      r.comfort_bed_needed,
       r.payment_status,
       r.payment_amount,
       r.is_cancelled ? "是" : "否",
@@ -111,7 +112,7 @@ export function ExportMenu({
   }
 
   function exportCheckin() {
-    const headers = ["編號", "報名類別", "名字", "人數", "區域編號", "睡袋(墊)自備/租借", "是否繳費", "電話"];
+    const headers = ["編號", "報名類別", "名字", "人數", "區域編號", "睡袋(墊)自備/租借", "福慧床借用", "是否繳費", "電話"];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
       categoryLabel(r),
@@ -119,6 +120,7 @@ export function ExportMenu({
       r.memberNames.length,
       excelText(`${r.group_zone ?? ""} ${r.group_number ?? ""}`.trim()),
       excelText(`${r.sleeping_bag_own_qty} / ${r.sleeping_bag_rent_qty}`),
+      r.comfort_bed_needed,
       r.payment_status === "已完成" || r.payment_status === "無需繳費" ? "是" : "否",
       excelText(r.contact_phone),
     ]);

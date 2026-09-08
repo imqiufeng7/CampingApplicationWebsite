@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { ProgressDots } from "@/components/public-form/ProgressDots";
 import { MemberFieldGroup } from "@/components/public-form/MemberFieldGroup";
+import { ComfortBedField } from "@/components/public-form/ComfortBedField";
 import { ConsentSection } from "@/components/public-form/ConsentSection";
 import { ConsentGate } from "@/components/public-form/ConsentGate";
 import { RichContent } from "@/components/public-form/RichContent";
@@ -96,6 +97,7 @@ export function RegistrationForm({
       contact_email: "",
       contact_phone: "",
       members: [emptyMember()],
+      comfort_bed_needed: "" as unknown as "需要" | "不需要",
       agree_rules: false,
       agree_privacy: false,
     },
@@ -118,6 +120,7 @@ export function RegistrationForm({
         registration_category_id: selectedCategoryId || null,
         contact_email: values.contact_email,
         contact_phone: values.contact_phone,
+        comfort_bed_needed: values.comfort_bed_needed,
         members: values.members.map((m, i) => ({
           member_order: i,
           name: m.name,
@@ -400,6 +403,8 @@ export function RegistrationForm({
             + 新增成員
           </Button>
         )}
+
+        <ComfortBedField control={form.control} />
 
         <SectionCard title="注意事項與同意書">
           <ConsentSection

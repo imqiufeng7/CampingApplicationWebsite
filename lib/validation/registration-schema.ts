@@ -84,6 +84,7 @@ export function buildRegistrationSchema(config: SessionFormConfig) {
       .array(memberSchema)
       .min(1, "至少需要一位成員")
       .max(config.maxMembers, `此場次每筆報名最多 ${config.maxMembers} 人`),
+    comfort_bed_needed: z.enum(["需要", "不需要"], "請選擇是否需要借用福慧床"),
     // z.boolean().refine() (not z.literal(true)) so the field can hold `false` while
     // the checkbox is unchecked — a literal(true) schema's input type would be `true`
     // only, which can't model an unchecked checkbox's runtime state.

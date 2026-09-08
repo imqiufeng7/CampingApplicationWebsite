@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MemberFieldGroup } from "@/components/public-form/MemberFieldGroup";
+import { ComfortBedField } from "@/components/public-form/ComfortBedField";
 import { SectionCard } from "@/components/public-form/SectionCard";
 import { ConfettiBurst } from "@/components/public-form/ConfettiBurst";
 
@@ -58,6 +59,7 @@ export function EditRegistrationForm({
     defaultValues: {
       contact_email: data.contact_email,
       contact_phone: data.contact_phone,
+      comfort_bed_needed: (data.comfort_bed_needed || "") as unknown as "需要" | "不需要",
       members: data.members.map((m) => {
         const identityType = identityTypes.find((it) => it.id === m.identity_type_id);
         return {
@@ -93,6 +95,7 @@ export function EditRegistrationForm({
       payload: {
         contact_email: values.contact_email,
         contact_phone: values.contact_phone,
+        comfort_bed_needed: values.comfort_bed_needed,
         members: values.members.map((m, i) => ({
           member_order: i,
           name: m.name,
@@ -203,6 +206,8 @@ export function EditRegistrationForm({
             onRemove={() => {}}
           />
         ))}
+
+        <ComfortBedField control={form.control} />
 
         {submitError && <p className="text-destructive text-sm">{submitError}</p>}
 

@@ -195,6 +195,7 @@ export interface Database {
           registration_category_id: string | null;
           contact_email: string;
           contact_phone: string;
+          comfort_bed_needed: string;
           submitted_at: string;
           review_status: ReviewStatus;
           admission_status: AdmissionStatus;
