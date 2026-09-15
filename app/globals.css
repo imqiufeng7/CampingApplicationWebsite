@@ -168,6 +168,21 @@
   padding: 0.5rem 0.75rem;
 }
 
+/* Email body editor: matches wrapEmailBody's flat baseline (see
+   lib/email/renderTemplate.ts) exactly — no line-height multiplier or paragraph
+   margin on either side, so what the vendor sees while typing here is a 1:1 preview
+   of what actually gets mailed (pressing Enter reads as exactly one blank line in
+   both places). Deliberately doesn't share .tiptap-editor's 1.7 line-height above,
+   which is tuned for the public page's long-form rules text, not a short
+   notification email where the vendor needs to gauge spacing precisely. */
+.tiptap-editor.tiptap-editor--email .ProseMirror {
+  line-height: 1.25;
+  font-size: 16px;
+}
+.tiptap-editor.tiptap-editor--email .ProseMirror p {
+  margin: 0;
+}
+
 /* Used by the birthdate wheel picker — a visible scrollbar would fight with the
    scroll-snap "wheel" illusion. */
 .scrollbar-none {

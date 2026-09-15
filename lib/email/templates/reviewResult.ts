@@ -42,12 +42,15 @@ export const MANUAL_TRANSFER_ACCOUNT_INFO =
 // Fallback only — matches the row seeded by the email_templates migration, used if
 // that row was somehow deleted (getEmailTemplate's last resort).
 export const DEFAULT_REVIEW_RESULT_SUBJECT = "【{{活動名稱}}】報名審核結果通知";
-export const DEFAULT_REVIEW_RESULT_BODY = `{{錄取結果}}
+export const DEFAULT_REVIEW_RESULT_BODY = `{{第一位成員姓名}} 您好，
+
+{{錄取結果}}
 
 活動場次：{{活動名稱}}
 
 成員審核結果：
 {{成員審核結果}}
+您需要繳交的團隊報名費共計 {{繳費金額}} 元。
 
 繳費資訊：
 {{繳費資訊}}
@@ -80,16 +83,9 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
         ? "您目前為備取名單，若有名額釋出將另行通知。"
         : "審核結果請見以下說明。";
 
-  const memberLines = input.members
+  const memberSection = input.members
     .map((m, i) => describeMember(m, i, input.feeDiscountPerPerson))
     .join("\n");
-  // Only appended when someone actually owes money — every member's own line above
-  // already reads "無需繳交報名費" when the total is zero, so a "共計 0 元" line here
-  // would just be redundant.
-  const memberSection =
-    input.paymentAmount > 0
-      ? `${memberLines}\n您需要繳交的團隊報名費共計${input.paymentAmount}元。`
-      : memberLines;
 
   // 備取/取消 never get payment details — 正取 is confirmed and payment_amount is
   // meaningful right now; a waitlisted registrant's amount is only a projection for
@@ -119,8 +115,14 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
     活動名稱: input.sessionName,
     活動日期: formatSessionDateWithWeekday(input.sessionDateStart, input.sessionDateEnd),
     第一位成員姓名: input.members[0]?.name ?? "",
+    成員名單: input.members.map((m, i) => `${i + 1}. ${m.name}`).join("\n"),
     錄取結果: admissionLine,
     成員審核結果: memberSection,
+    // Split out from 成員審核結果 as its own token so the vendor can wrap just the
+    // number in bold/color/larger font via the email editor's toolbar — a value
+    // baked into the middle of a longer computed sentence couldn't be selected and
+    // styled on its own.
+    繳費金額: input.paymentAmount.toLocaleString("zh-TW"),
     繳費資訊: paymentLines,
   };
 }

@@ -36,10 +36,19 @@ export async function sendEditLinkGrantedEmail(
     .eq("id", registration.session_id)
     .maybeSingle();
 
+  const { data: firstMember } = await admin
+    .from("registration_members")
+    .select("name")
+    .eq("registration_id", registrationId)
+    .order("member_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const vars = buildEditLinkGrantedVars({
     sessionName: session?.name ?? "",
     registrationNo: formatRegistrationNo(registration.registration_seq),
+    firstMemberName: firstMember?.name ?? "",
     reason,
     editUrl: `${siteUrl}/edit/${registration.edit_token}`,
   });
