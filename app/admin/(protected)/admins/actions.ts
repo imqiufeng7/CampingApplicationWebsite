@@ -96,7 +96,13 @@ async function sendAccountSetupLink(
 export async function createAdminUser(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireRole("vendor");
 
-  const email = String(formData.get("email") ?? "").trim();
+  // Supabase Auth always normalizes stored emails to lowercase, so comparing (and
+  // later storing) the raw, as-typed casing against it is what let "誤刪重新邀請"
+  // silently fail: a re-invite typed as "Joy@..." never matched the existing
+  // "joy@..." auth user, so this treated it as brand new and hit generateLink's own
+  // "already been registered" error instead of correctly sending a magiclink to the
+  // account that (deliberately — see deleteAdminUser) was never actually deleted.
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
   const roleId = String(formData.get("role_id") ?? "");
   const managedSessionIds = formData.getAll("managed_session_ids").map(String);
@@ -111,7 +117,7 @@ export async function createAdminUser(_prev: ActionState, formData: FormData): P
 
   const admin = createAdminClient();
   const { data: existing } = await admin.auth.admin.listUsers();
-  const existingUser = existing?.users.find((u) => u.email === email);
+  const existingUser = existing?.users.find((u) => u.email?.toLowerCase() === email);
 
   // roleKey (e.g. "vendor") isn't fit for display — fetch the human-readable label
   // for the invite email, same as resendInvite already does below.
