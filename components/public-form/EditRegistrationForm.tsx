@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
 import {
   buildRegistrationSchema,
+  emptyMember,
   resolveIdentityTypeId,
   type RegistrationFormInput,
   type RegistrationFormOutput,
@@ -32,6 +33,7 @@ export function EditRegistrationForm({
   identityTypes,
   feeCategories,
   hideFeeCategory,
+  maxMembers,
   data,
 }: {
   token: string;
@@ -39,19 +41,28 @@ export function EditRegistrationForm({
   identityTypes: IdentityType[];
   feeCategories: FeeCategory[];
   hideFeeCategory?: boolean;
+  // Same cap the original registration was submitted under (session or category
+  // max_members) — lets a registrant add members they forgot, up to that limit,
+  // instead of having to start an entirely new registration from scratch.
+  maxMembers: number;
   data: EditRegistrationData;
 }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // How many members this registration actually had when the page loaded — used
+  // only to tell "existing member" (not removable here) apart from "just added in
+  // this session" (removable, in case of a misclick) below; unaffected by
+  // append/remove happening afterward.
+  const originalMemberCount = data.members.length;
 
   const schema = useMemo(
     () =>
       buildRegistrationSchema({
-        maxMembers: data.members.length,
+        maxMembers,
         identityTypes,
         feeCategories,
       }),
-    [data.members.length, identityTypes, feeCategories]
+    [maxMembers, identityTypes, feeCategories]
   );
 
   const form = useForm<RegistrationFormInput, unknown, RegistrationFormOutput>({
@@ -84,7 +95,7 @@ export function EditRegistrationForm({
     mode: "onBlur",
   });
 
-  const { fields } = useFieldArray({ control: form.control, name: "members" });
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: "members" });
 
   async function onSubmit(values: RegistrationFormOutput) {
     setSubmitError(null);
@@ -202,10 +213,21 @@ export function EditRegistrationForm({
             identityTypes={identityTypes}
             feeCategories={feeCategories}
             hideFeeCategory={hideFeeCategory}
-            removable={false}
-            onRemove={() => {}}
+            removable={index >= originalMemberCount}
+            onRemove={() => remove(index)}
           />
         ))}
+
+        {fields.length < maxMembers && (
+          <Button
+            type="button"
+            variant="outline"
+            className="border-primary/40 text-primary hover:bg-primary/10 h-11 w-fit rounded-full px-5 text-base"
+            onClick={() => append(emptyMember())}
+          >
+            + 新增成員
+          </Button>
+        )}
 
         <ComfortBedField control={form.control} />
 

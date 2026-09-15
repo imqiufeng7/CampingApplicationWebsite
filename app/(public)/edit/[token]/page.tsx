@@ -82,7 +82,7 @@ export default async function EditRegistrationPage({
       registrationData.registration_category_id
         ? supabase
             .from("session_registration_categories")
-            .select("is_free")
+            .select("is_free, max_members")
             .eq("id", registrationData.registration_category_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
@@ -96,6 +96,8 @@ export default async function EditRegistrationPage({
     );
   }
 
+  const maxMembers = registrationCategory?.max_members ?? session.max_members_per_registration;
+
   return (
     <div className="mx-auto grid max-w-2xl gap-4 p-4 py-8">
       <EditRegistrationForm
@@ -104,6 +106,7 @@ export default async function EditRegistrationPage({
         identityTypes={identityTypes ?? []}
         feeCategories={feeCategories ?? []}
         hideFeeCategory={registrationCategory?.is_free ?? false}
+        maxMembers={maxMembers}
         data={registrationData}
       />
       <DeleteMyRegistrationButton
