@@ -200,6 +200,7 @@ export function ReviewTable({
   const [reviewFilter, setReviewFilter] = useState("");
   const [admissionFilter, setAdmissionFilter] = useState("");
   const [cancelledFilter, setCancelledFilter] = useState("");
+  const [duplicateFilter, setDuplicateFilter] = useState("");
   // Lifted out of the per-row "證明文件" cell — one dialog instance at the table
   // level, driven by which registration is selected, rather than each row owning its
   // own <Dialog>. A row-nested dialog would tear down (along with its open state)
@@ -272,6 +273,8 @@ export function ReviewTable({
         if (admissionFilter && r.admission_status !== admissionFilter) return false;
         if (cancelledFilter === "cancelled" && !r.is_cancelled) return false;
         if (cancelledFilter === "active" && r.is_cancelled) return false;
+        if (duplicateFilter === "duplicate" && !r.duplicate_flag) return false;
+        if (duplicateFilter === "not_duplicate" && r.duplicate_flag) return false;
         if (!term) return true;
         if (activeIdNumberHash && r.members.some((m) => m.id_number_hash === activeIdNumberHash)) {
           return true;
@@ -288,7 +291,16 @@ export function ReviewTable({
         return haystack.includes(termNormalized);
       })
       .sort((a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0));
-  }, [data, search, idNumberSearchHash, reviewFilter, admissionFilter, cancelledFilter, orderIndex]);
+  }, [
+    data,
+    search,
+    idNumberSearchHash,
+    reviewFilter,
+    admissionFilter,
+    cancelledFilter,
+    duplicateFilter,
+    orderIndex,
+  ]);
 
   // Same 區域+編號 combo used by more than one active registration in this session —
   // checked against the full session dataset (not just the filtered view) so a
@@ -788,6 +800,15 @@ export function ReviewTable({
           <option value="">全部狀態</option>
           <option value="active">未取消</option>
           <option value="cancelled">已取消</option>
+        </select>
+        <select
+          value={duplicateFilter}
+          onChange={(e) => setDuplicateFilter(e.target.value)}
+          className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
+        >
+          <option value="">全部（含疑似重複）</option>
+          <option value="duplicate">只看疑似重複</option>
+          <option value="not_duplicate">不含疑似重複</option>
         </select>
 
         <DropdownMenu>
