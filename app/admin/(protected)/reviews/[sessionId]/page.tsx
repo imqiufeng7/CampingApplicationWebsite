@@ -112,7 +112,11 @@ export default async function ReviewListPage({
     { otherSeq: number | null; otherSessionName: string | null; memberName: string }[]
   >();
   for (const m of dupMatches ?? []) {
-    const memberName = (m.diff_summary as { matched_member_name?: string } | null)?.matched_member_name ?? "";
+    // One row can now cover several duplicated members between the same two
+    // registrations (see fn_check_duplicate_for_member) — expand the array into
+    // one list entry per name so the existing one-badge-per-entry rendering in
+    // ReviewTable doesn't need to change.
+    const memberNames = (m.diff_summary as { matched_member_names?: string[] } | null)?.matched_member_names ?? [];
     for (const [self, other] of [
       [m.registration_id_a, m.registration_id_b],
       [m.registration_id_b, m.registration_id_a],
@@ -120,7 +124,9 @@ export default async function ReviewListPage({
       if (!flaggedIds.includes(self)) continue;
       const list = dupMatchesByRegistration.get(self) ?? [];
       const info = otherRegMap.get(other);
-      list.push({ otherSeq: info?.seq ?? null, otherSessionName: info?.sessionName ?? null, memberName });
+      for (const memberName of memberNames) {
+        list.push({ otherSeq: info?.seq ?? null, otherSessionName: info?.sessionName ?? null, memberName });
+      }
       dupMatchesByRegistration.set(self, list);
     }
   }
