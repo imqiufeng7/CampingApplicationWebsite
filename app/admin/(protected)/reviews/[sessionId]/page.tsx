@@ -37,7 +37,7 @@ export default async function ReviewListPage({
       ? supabase
           .from("registration_members")
           .select(
-            "id, registration_id, member_order, name, identity_type_id, org_selected, org_other_text, fee_category_id, fee_review_result, needs_resubmission, resubmission_note, birth_year_roc, birth_month, birth_day"
+            "id, registration_id, member_order, name, identity_type_id, org_selected, org_other_text, fee_category_id, fee_review_result, needs_resubmission, resubmission_note, birth_year_roc, birth_month, birth_day, id_number_hash"
           )
           .in("registration_id", registrationIds)
           .order("member_order", { ascending: true })

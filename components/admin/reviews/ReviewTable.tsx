@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   columnVisibilityFeature,
@@ -47,7 +47,13 @@ import { updateRegistrationField, type RegistrationEditableField } from "@/app/a
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { createClient } from "@/lib/supabase/client";
 import type { FieldPermissions } from "@/lib/auth/permissions";
+
+// Matches the zod schema's own id-number format (registration-schema.ts) — used to
+// tell "this looks like a full ID number" apart from a name/email search term, so
+// the hash RPC only fires when it could plausibly match.
+const ID_NUMBER_PATTERN = /^[A-Za-z][12]\d{8}$/;
 
 export type ReviewRowMember = {
   id: string;
@@ -62,6 +68,7 @@ export type ReviewRowMember = {
   birth_year_roc: number | null;
   birth_month: number | null;
   birth_day: number | null;
+  id_number_hash: string | null;
 };
 
 export type ReviewRowFile = { id: string; member_id: string | null; file_type: string };
@@ -182,6 +189,14 @@ export function ReviewTable({
   initialSortIds: string[];
 }) {
   const [search, setSearch] = useState("");
+  // Hash of `search`, computed server-side (see fn_hash_id_number_for_search) only
+  // when it looks like a full ID number — the plaintext is never sent anywhere for
+  // members other than the ones this admin is actively trying to find, and the
+  // comparison itself happens locally against the already-loaded id_number_hash
+  // column, not via another round trip per row.
+  const [idNumberSearchHash, setIdNumberSearchHash] = useState<{ term: string; hash: string } | null>(
+    null
+  );
   const [reviewFilter, setReviewFilter] = useState("");
   const [admissionFilter, setAdmissionFilter] = useState("");
   const [cancelledFilter, setCancelledFilter] = useState("");
@@ -222,8 +237,35 @@ export function ReviewTable({
     ? (data.find((r) => r.id === selectedRegistrationId) ?? null)
     : null;
 
+  // A full ID number only ever matches exactly (see fn_hash_id_number_for_search's
+  // comment) — this fires the hash lookup only once the typed term actually looks
+  // like one, not on every keystroke of an unrelated name/email search. The hash is
+  // stored alongside the exact term it was computed for, so `filtered` below can
+  // tell a fresh result apart from a stale one left over from a previous ID number
+  // search (e.g. after the term changed again while the request was in flight)
+  // without this effect ever calling setState synchronously in its own body.
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (!ID_NUMBER_PATTERN.test(trimmed)) return;
+    let cancelled = false;
+    createClient()
+      .rpc("fn_hash_id_number_for_search", { p_value: trimmed })
+      .then(({ data: hash }) => {
+        if (!cancelled && hash) setIdNumberSearchHash({ term: trimmed, hash });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [search]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    // Dash-insensitive so "0912345678" matches a stored "0912-345678" — the only
+    // formatting character contact_phone ever contains (registration-schema.ts
+    // enforces the 09XX-XXXXXX shape at submission).
+    const termNormalized = term.replace(/-/g, "");
+    const activeIdNumberHash =
+      idNumberSearchHash?.term === search.trim() ? idNumberSearchHash.hash : null;
     return data
       .filter((r) => {
         if (reviewFilter && r.review_status !== reviewFilter) return false;
@@ -231,13 +273,22 @@ export function ReviewTable({
         if (cancelledFilter === "cancelled" && !r.is_cancelled) return false;
         if (cancelledFilter === "active" && r.is_cancelled) return false;
         if (!term) return true;
-        const haystack = [r.contact_email, r.contact_phone, ...r.memberNames]
+        if (activeIdNumberHash && r.members.some((m) => m.id_number_hash === activeIdNumberHash)) {
+          return true;
+        }
+        const haystack = [
+          r.contact_email,
+          r.contact_phone,
+          formatRegistrationNo(r.registration_seq),
+          ...r.memberNames,
+        ]
           .join(" ")
-          .toLowerCase();
-        return haystack.includes(term);
+          .toLowerCase()
+          .replace(/-/g, "");
+        return haystack.includes(termNormalized);
       })
       .sort((a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0));
-  }, [data, search, reviewFilter, admissionFilter, cancelledFilter, orderIndex]);
+  }, [data, search, idNumberSearchHash, reviewFilter, admissionFilter, cancelledFilter, orderIndex]);
 
   // Same 區域+編號 combo used by more than one active registration in this session —
   // checked against the full session dataset (not just the filtered view) so a
@@ -361,6 +412,30 @@ export function ReviewTable({
           header: "人數",
           accessorFn: (r) => r.memberNames.length,
           cell: ({ row }) => row.original.memberNames.length,
+        },
+        {
+          id: "fee_categories_applied",
+          header: "申請免付費類別",
+          accessorFn: (r) =>
+            r.members
+              .filter((m) => m.fee_category_id)
+              .map((m) => `${m.name} ${feeCategoryMap.get(m.fee_category_id!) ?? ""}`)
+              .join(" "),
+          cell: ({ row }) => {
+            const applied = row.original.members.filter((m) => m.fee_category_id);
+            if (applied.length === 0) {
+              return <span className="text-muted-foreground text-xs">-</span>;
+            }
+            return (
+              <div className="grid gap-0.5 text-xs">
+                {applied.map((m) => (
+                  <span key={m.id}>
+                    {m.name}：{feeCategoryMap.get(m.fee_category_id!) ?? "-"}
+                  </span>
+                ))}
+              </div>
+            );
+          },
         },
       ];
 
@@ -678,7 +753,7 @@ export function ReviewTable({
 
       <div className="flex flex-wrap items-center gap-2" data-tour="review-filters">
         <Input
-          placeholder="搜尋聯絡人/成員..."
+          placeholder="搜尋姓名/Email/電話/報名編號/身分證字號..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 w-48"

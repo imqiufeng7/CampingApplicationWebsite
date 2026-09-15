@@ -276,6 +276,11 @@ export interface Database {
           registration_id: string;
           member_order: number;
           name: string;
+          // Safe to select via the typed client (unlike id_number_encrypted, kept out
+          // of this type entirely) — an HMAC of the plaintext, one-way, reveals
+          // nothing. Used only for exact-match search (see
+          // fn_hash_id_number_for_search), never displayed.
+          id_number_hash: string | null;
           household_address: string | null;
           birth_year_roc: number | null;
           birth_month: number | null;
@@ -445,6 +450,10 @@ export interface Database {
       fn_get_registration_member_id_number: {
         Args: { p_member_id: string };
         Returns: string | null;
+      };
+      fn_hash_id_number_for_search: {
+        Args: { p_value: string };
+        Returns: string;
       };
       fn_get_registration_for_edit: {
         Args: { p_token: string };
