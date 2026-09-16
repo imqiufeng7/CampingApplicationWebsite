@@ -50,10 +50,11 @@ import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import { createClient } from "@/lib/supabase/client";
 import type { FieldPermissions } from "@/lib/auth/permissions";
 
-// Matches the zod schema's own id-number format (registration-schema.ts) — used to
-// tell "this looks like a full ID number" apart from a name/email search term, so
-// the hash RPC only fires when it could plausibly match.
-const ID_NUMBER_PATTERN = /^[A-Za-z][12]\d{8}$/;
+// Matches the zod schema's own id-number format (registration-schema.ts, which has
+// the full explanation of the 1/2/8/9/A-D second-character range) — used to tell
+// "this looks like a full ID number" apart from a name/email search term, so the
+// hash RPC only fires when it could plausibly match.
+const ID_NUMBER_PATTERN = /^[A-Za-z][1289A-Da-d]\d{8}$/;
 
 export type ReviewRowMember = {
   id: string;

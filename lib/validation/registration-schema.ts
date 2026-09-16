@@ -24,10 +24,15 @@ export function buildRegistrationSchema(config: SessionFormConfig) {
   const memberSchema = z
     .object({
       name: z.string().min(1, "請填寫姓名"),
+      // Second character: 1/2 for a citizen national ID, 8/9 for a foreign
+      // resident's pre-2021-format 統一證號, A-D for the newer foreign-resident
+      // format (see 內政部移民署's 2021 numbering change) — not just 1/2, or every
+      // foreign national's registration would fail here (see production incident:
+      // R000193's 阿婷, ID N900044868, rejected until this was widened).
       id_number: z
         .string()
         .min(1, "請填寫身分證字號")
-        .regex(/^[A-Za-z][12]\d{8}$/, "身分證字號格式錯誤"),
+        .regex(/^[A-Za-z][1289A-Da-d]\d{8}$/, "身分證字號格式錯誤"),
       household_address: z.string().min(1, "請填寫戶籍地址"),
       birth_year_roc: z.coerce.number("請填寫出生年（民國）").int().min(1, "請填寫出生年（民國）"),
       birth_month: z.coerce
