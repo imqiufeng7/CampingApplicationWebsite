@@ -10,6 +10,7 @@ import { RegistrationCategoryEditor } from "@/components/admin/RegistrationCateg
 import { SessionEmailTemplateEditor } from "@/components/admin/SessionEmailTemplateEditor";
 import { BannerUploadField } from "@/components/admin/BannerUploadField";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import { SessionStatusButton } from "@/components/admin/SessionStatusButton";
 import { PurgeRegistrationsButton } from "@/components/admin/PurgeRegistrationsButton";
 import type { EmailType } from "@/lib/db/types";
 
@@ -99,6 +100,15 @@ export default async function SessionBuilderPage({
       <Link href={`/admin/series/${seriesId}`} className="text-muted-foreground text-sm">
         ← 返回系列
       </Link>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">報名狀態</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SessionStatusButton seriesId={seriesId} sessionId={sessionId} status={session.status} />
+        </CardContent>
+      </Card>
 
       {publicUrl && (
         <Card>

@@ -124,6 +124,34 @@ export async function updateSession(
   return { error: null };
 }
 
+// One-click status toggle for the "關閉報名"/"重新開放報名" button — same
+// event_sessions.status column SessionForm's own dropdown writes, just without
+// having to open and resubmit the entire session form for this one field. Only
+// ever flips between the two states that actually gate the public form
+// (fn_submit_registration rejects anything but 'open'); draft/archived stay
+// full-form-only since those are setup/wind-down states, not a quick toggle.
+export async function setSessionRegistrationOpen(
+  seriesId: string,
+  sessionId: string,
+  open: boolean
+): Promise<ActionState> {
+  await requireRole("vendor");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("event_sessions")
+    .update({ status: open ? "open" : "closed" })
+    .eq("id", sessionId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/series/${seriesId}/sessions/${sessionId}`);
+  revalidatePath(`/admin/series/${seriesId}`);
+  return { error: null };
+}
+
 // Storage upload itself happens client-side (BannerUploadField uploads straight to the
 // public session-assets bucket using the vendor's own authenticated session, allowed
 // by the vendor_write_session_assets storage RLS policy) — this just persists the
