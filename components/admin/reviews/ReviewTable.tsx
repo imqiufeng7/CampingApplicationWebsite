@@ -357,6 +357,9 @@ export function ReviewTable({
       zoneCounts: [...zoneCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
       admittedByCategory: [...admittedByCategory.entries()],
       admittedTotal: active.filter((r) => r.admission_status === "正取").length,
+      admittedPeople: active
+        .filter((r) => r.admission_status === "正取")
+        .reduce((sum, r) => sum + r.memberNames.length, 0),
       selfSuppliedBags: active.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
       rentedBags: active.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
       comfortBedNeededCount: active.filter((r) => r.comfort_bed_needed === "需要").length,
@@ -747,7 +750,7 @@ export function ReviewTable({
           <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
           <StatPair
             primary={{ label: "已錄取", value: summary.admittedTotal }}
-            secondary={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }}
+            secondary={{ label: "錄取總人數（實際出席）", value: summary.admittedPeople }}
           />
           <StatPair
             primary={{ label: "已繳費", value: summary.paidCount }}
@@ -761,6 +764,7 @@ export function ReviewTable({
             primary={{ label: "福慧床-需要借用", value: summary.comfortBedNeededCount }}
             secondary={{ label: "不需要借用", value: summary.comfortBedNotNeededCount }}
           />
+          <ZoneBreakdownCard zoneCounts={summary.zoneCounts} />
         </div>
       </div>
 
@@ -943,7 +947,7 @@ type StatValue =
   | { label: string; breakdown: [string, number][]; colorFn?: (key: string) => string };
 
 // Deliberately always dark regardless of the site's own light/dark theme toggle — a
-// fixed high-contrast "KPI card" look the vendor asked for specifically for these four
+// fixed high-contrast "KPI card" look the vendor asked for specifically for these
 // summary blocks. First pass used a plain near-black (zinc-900), which read as too
 // heavy/high-pressure — this warm dark brown is pulled from the same family as the
 // site's own terracotta primary (--primary: #b8412f in .theme-admin) rather than a
@@ -957,6 +961,16 @@ function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatV
       <StatLine stat={primary} size="lg" />
       <div className="my-1 border-t border-[#7a4a3a]" />
       <StatLine stat={secondary} size="sm" />
+    </div>
+  );
+}
+
+// Single-line variant of the dark card, used for 分組區域 now that it's no longer
+// squeezed in as 已錄取's secondary line (which needed that slot for 錄取總人數).
+function ZoneBreakdownCard({ zoneCounts }: { zoneCounts: [string, number][] }) {
+  return (
+    <div className="rounded-lg border border-[#7a4a3a] bg-[#5a3128] p-2">
+      <StatLine stat={{ label: "分組區域", breakdown: zoneCounts, colorFn: zoneTextColor }} size="lg" />
     </div>
   );
 }
