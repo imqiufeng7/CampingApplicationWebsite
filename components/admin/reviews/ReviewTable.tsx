@@ -346,24 +346,31 @@ export function ReviewTable({
       admittedByCategory.set(label, (admittedByCategory.get(label) ?? 0) + 1);
     }
 
+    // Payment/logistics figures are scoped to 正取 only — a still-waitlisted or
+    // pending group isn't guaranteed to show up, so counting its payment, sleeping
+    // gear, or comfort-bed request alongside admitted groups overstated what's
+    // actually needed on site. 已取消 mirrors this: cancellations among groups that
+    // were never admitted don't reduce actual attendance, so only admitted-then-
+    // cancelled groups count here (computed from the full `data`, since `active`
+    // already excludes cancelled rows).
+    const admitted = active.filter((r) => r.admission_status === "正取");
+
     return {
       totalCount: data.length,
-      cancelledCount: data.length - active.length,
+      cancelledCount: data.filter((r) => r.is_cancelled && r.admission_status === "正取").length,
       totalPeople: active.reduce((sum, r) => sum + r.memberNames.length, 0),
-      paidCount: active.filter((r) => r.payment_status === "已完成").length,
-      collectedAmount: active
+      paidCount: admitted.filter((r) => r.payment_status === "已完成").length,
+      collectedAmount: admitted
         .filter((r) => r.payment_status === "已完成")
         .reduce((sum, r) => sum + r.payment_amount, 0),
       zoneCounts: [...zoneCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
       admittedByCategory: [...admittedByCategory.entries()],
-      admittedTotal: active.filter((r) => r.admission_status === "正取").length,
-      admittedPeople: active
-        .filter((r) => r.admission_status === "正取")
-        .reduce((sum, r) => sum + r.memberNames.length, 0),
-      selfSuppliedBags: active.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
-      rentedBags: active.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
-      comfortBedNeededCount: active.filter((r) => r.comfort_bed_needed === "需要").length,
-      comfortBedNotNeededCount: active.filter((r) => r.comfort_bed_needed !== "需要").length,
+      admittedTotal: admitted.length,
+      admittedPeople: admitted.reduce((sum, r) => sum + r.memberNames.length, 0),
+      selfSuppliedBags: admitted.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
+      rentedBags: admitted.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
+      comfortBedNeededCount: admitted.filter((r) => r.comfort_bed_needed === "需要").length,
+      comfortBedNotNeededCount: admitted.filter((r) => r.comfort_bed_needed !== "需要").length,
     };
   }, [data, registrationCategoryMap]);
 
@@ -753,16 +760,16 @@ export function ReviewTable({
             secondary={{ label: "錄取總人數（實際出席）", value: summary.admittedPeople }}
           />
           <StatPair
-            primary={{ label: "已繳費", value: summary.paidCount }}
-            secondary={{ label: "收費總額", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
+            primary={{ label: "已繳費（已錄取）", value: summary.paidCount }}
+            secondary={{ label: "收費總額（已錄取）", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
           />
           <StatPair
-            primary={{ label: "已取消", value: summary.cancelledCount }}
-            secondary={{ label: "睡墊情況（自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
+            primary={{ label: "已取消（已錄取後取消）", value: summary.cancelledCount }}
+            secondary={{ label: "睡墊情況（已錄取，自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
           />
           <StatPair
-            primary={{ label: "福慧床-需要借用", value: summary.comfortBedNeededCount }}
-            secondary={{ label: "不需要借用", value: summary.comfortBedNotNeededCount }}
+            primary={{ label: "福慧床-需要借用（已錄取）", value: summary.comfortBedNeededCount }}
+            secondary={{ label: "不需要借用（已錄取）", value: summary.comfortBedNotNeededCount }}
           />
           <ZoneBreakdownCard zoneCounts={summary.zoneCounts} />
         </div>
