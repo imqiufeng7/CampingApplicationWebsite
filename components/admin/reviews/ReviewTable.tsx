@@ -346,31 +346,43 @@ export function ReviewTable({
       admittedByCategory.set(label, (admittedByCategory.get(label) ?? 0) + 1);
     }
 
-    // Payment/logistics figures are scoped to 正取 only — a still-waitlisted or
-    // pending group isn't guaranteed to show up, so counting its payment, sleeping
-    // gear, or comfort-bed request alongside admitted groups overstated what's
-    // actually needed on site. 已取消 mirrors this: cancellations among groups that
-    // were never admitted don't reduce actual attendance, so only admitted-then-
-    // cancelled groups count here (computed from the full `data`, since `active`
-    // already excludes cancelled rows).
+    // Every KPI cell shows 錄取後實際數量／報名實際數量 — the admitted (正取) subset
+    // next to the full active (non-withdrawn) count — rather than picking just one
+    // side, since a still-waitlisted or pending group isn't guaranteed to show up
+    // and the vendor wants both numbers visible at once. 已取消 is the one exception:
+    // it reads admission_status === "取消" (the admin's own rejection decision)
+    // directly, since that's mutually exclusive with 正取 and isn't a ratio.
     const admitted = active.filter((r) => r.admission_status === "正取");
+    const sum = (list: typeof active, pick: (r: (typeof active)[number]) => number) =>
+      list.reduce((s, r) => s + pick(r), 0);
 
     return {
       totalCount: data.length,
-      cancelledCount: data.filter((r) => r.is_cancelled && r.admission_status === "正取").length,
-      totalPeople: active.reduce((sum, r) => sum + r.memberNames.length, 0),
-      paidCount: admitted.filter((r) => r.payment_status === "已完成").length,
-      collectedAmount: admitted
-        .filter((r) => r.payment_status === "已完成")
-        .reduce((sum, r) => sum + r.payment_amount, 0),
+      cancelledCount: data.filter((r) => r.admission_status === "取消").length,
+      groupsAdmitted: admitted.length,
+      groupsAll: active.length,
+      peopleAdmitted: sum(admitted, (r) => r.memberNames.length),
+      peopleAll: sum(active, (r) => r.memberNames.length),
+      paidAdmitted: admitted.filter((r) => r.payment_status === "已完成").length,
+      paidAll: active.filter((r) => r.payment_status === "已完成").length,
+      collectedAdmitted: sum(
+        admitted.filter((r) => r.payment_status === "已完成"),
+        (r) => r.payment_amount
+      ),
+      collectedAll: sum(
+        active.filter((r) => r.payment_status === "已完成"),
+        (r) => r.payment_amount
+      ),
       zoneCounts: [...zoneCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
       admittedByCategory: [...admittedByCategory.entries()],
-      admittedTotal: admitted.length,
-      admittedPeople: admitted.reduce((sum, r) => sum + r.memberNames.length, 0),
-      selfSuppliedBags: admitted.reduce((sum, r) => sum + r.sleeping_bag_own_qty, 0),
-      rentedBags: admitted.reduce((sum, r) => sum + r.sleeping_bag_rent_qty, 0),
-      comfortBedNeededCount: admitted.filter((r) => r.comfort_bed_needed === "需要").length,
-      comfortBedNotNeededCount: admitted.filter((r) => r.comfort_bed_needed !== "需要").length,
+      selfSuppliedAdmitted: sum(admitted, (r) => r.sleeping_bag_own_qty),
+      selfSuppliedAll: sum(active, (r) => r.sleeping_bag_own_qty),
+      rentedAdmitted: sum(admitted, (r) => r.sleeping_bag_rent_qty),
+      rentedAll: sum(active, (r) => r.sleeping_bag_rent_qty),
+      comfortBedNeededAdmitted: admitted.filter((r) => r.comfort_bed_needed === "需要").length,
+      comfortBedNeededAll: active.filter((r) => r.comfort_bed_needed === "需要").length,
+      comfortBedNotNeededAdmitted: admitted.filter((r) => r.comfort_bed_needed !== "需要").length,
+      comfortBedNotNeededAll: active.filter((r) => r.comfort_bed_needed !== "需要").length,
     };
   }, [data, registrationCategoryMap]);
 
@@ -753,25 +765,35 @@ export function ReviewTable({
             </div>
           </div>
         )}
+        <p className="text-muted-foreground text-xs">格式為「已錄取 / 報名」</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          <StatPair primary={{ label: "總筆數", value: summary.totalCount }} secondary={{ label: "總人數", value: summary.totalPeople }} />
           <StatPair
-            primary={{ label: "已錄取", value: summary.admittedTotal }}
-            secondary={{ label: "錄取總人數（實際出席）", value: summary.admittedPeople }}
+            primary={{ label: "報名組數（已錄取／報名）", value: `${summary.groupsAdmitted} / ${summary.groupsAll}` }}
+            secondary={{ label: "總人數（已錄取／報名）", value: `${summary.peopleAdmitted} / ${summary.peopleAll}` }}
           />
           <StatPair
-            primary={{ label: "已繳費（已錄取）", value: summary.paidCount }}
-            secondary={{ label: "收費總額（已錄取）", value: `$${summary.collectedAmount.toLocaleString("zh-TW")}` }}
+            primary={{ label: "已繳費（已錄取／報名）", value: `${summary.paidAdmitted} / ${summary.paidAll}` }}
+            secondary={{
+              label: "收費總額（已錄取／報名）",
+              value: `$${summary.collectedAdmitted.toLocaleString("zh-TW")} / $${summary.collectedAll.toLocaleString("zh-TW")}`,
+            }}
+          />
+          <SingleStatCard stat={{ label: "已取消", value: summary.cancelledCount }} />
+          <StatPair
+            primary={{ label: "睡墊-自備（已錄取／報名）", value: `${summary.selfSuppliedAdmitted} / ${summary.selfSuppliedAll}` }}
+            secondary={{ label: "睡墊-租借（已錄取／報名）", value: `${summary.rentedAdmitted} / ${summary.rentedAll}` }}
           />
           <StatPair
-            primary={{ label: "已取消（已錄取後取消）", value: summary.cancelledCount }}
-            secondary={{ label: "睡墊情況（已錄取，自備/租借）", value: `${summary.selfSuppliedBags} / ${summary.rentedBags}` }}
+            primary={{
+              label: "福慧床-需要借用（已錄取／報名）",
+              value: `${summary.comfortBedNeededAdmitted} / ${summary.comfortBedNeededAll}`,
+            }}
+            secondary={{
+              label: "福慧床-不需要借用（已錄取／報名）",
+              value: `${summary.comfortBedNotNeededAdmitted} / ${summary.comfortBedNotNeededAll}`,
+            }}
           />
-          <StatPair
-            primary={{ label: "福慧床-需要借用（已錄取）", value: summary.comfortBedNeededCount }}
-            secondary={{ label: "不需要借用（已錄取）", value: summary.comfortBedNotNeededCount }}
-          />
-          <ZoneBreakdownCard zoneCounts={summary.zoneCounts} />
+          <SingleStatCard stat={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }} />
         </div>
       </div>
 
@@ -972,12 +994,13 @@ function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatV
   );
 }
 
-// Single-line variant of the dark card, used for 分組區域 now that it's no longer
-// squeezed in as 已錄取's secondary line (which needed that slot for 錄取總人數).
-function ZoneBreakdownCard({ zoneCounts }: { zoneCounts: [string, number][] }) {
+// Single-line variant of the dark card, for stats with no admitted/total ratio to
+// show (已取消 reads a mutually-exclusive admission_status directly; 分組區域 is a
+// per-zone breakdown, not a single ratio).
+function SingleStatCard({ stat }: { stat: StatValue }) {
   return (
     <div className="rounded-lg border border-[#7a4a3a] bg-[#5a3128] p-2">
-      <StatLine stat={{ label: "分組區域", breakdown: zoneCounts, colorFn: zoneTextColor }} size="lg" />
+      <StatLine stat={stat} size="lg" />
     </div>
   );
 }
