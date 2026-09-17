@@ -363,14 +363,17 @@ export function ReviewTable({
       groupsAll: active.length,
       peopleAdmitted: sum(admitted, (r) => r.memberNames.length),
       peopleAll: sum(active, (r) => r.memberNames.length),
+      // 已繳費／收費總額 compare against admitted groups that actually owe money
+      // (待繳費 or 已完成 — 無需繳費 groups were never going to pay), not against
+      // every admitted group or every active group.
       paidAdmitted: admitted.filter((r) => r.payment_status === "已完成").length,
-      paidAll: active.filter((r) => r.payment_status === "已完成").length,
+      paidNeeded: admitted.filter((r) => r.payment_status !== "無需繳費").length,
       collectedAdmitted: sum(
         admitted.filter((r) => r.payment_status === "已完成"),
         (r) => r.payment_amount
       ),
-      collectedAll: sum(
-        active.filter((r) => r.payment_status === "已完成"),
+      collectedNeeded: sum(
+        admitted.filter((r) => r.payment_status !== "無需繳費"),
         (r) => r.payment_amount
       ),
       zoneCounts: [...zoneCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
@@ -772,13 +775,16 @@ export function ReviewTable({
             secondary={{ label: "總人數（已錄取／報名）", value: `${summary.peopleAdmitted} / ${summary.peopleAll}` }}
           />
           <StatPair
-            primary={{ label: "已繳費（已錄取／報名）", value: `${summary.paidAdmitted} / ${summary.paidAll}` }}
+            primary={{ label: "已繳費（錄取已繳費／錄取需繳費）", value: `${summary.paidAdmitted} / ${summary.paidNeeded}` }}
             secondary={{
-              label: "收費總額（已錄取／報名）",
-              value: `$${summary.collectedAdmitted.toLocaleString("zh-TW")} / $${summary.collectedAll.toLocaleString("zh-TW")}`,
+              label: "收費總額（已收／應收）",
+              value: `$${summary.collectedAdmitted.toLocaleString("zh-TW")} / $${summary.collectedNeeded.toLocaleString("zh-TW")}`,
             }}
           />
-          <SingleStatCard stat={{ label: "已取消", value: summary.cancelledCount }} />
+          <StatPair
+            primary={{ label: "已取消", value: summary.cancelledCount }}
+            secondary={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }}
+          />
           <StatPair
             primary={{ label: "睡墊-自備（已錄取／報名）", value: `${summary.selfSuppliedAdmitted} / ${summary.selfSuppliedAll}` }}
             secondary={{ label: "睡墊-租借（已錄取／報名）", value: `${summary.rentedAdmitted} / ${summary.rentedAll}` }}
@@ -793,7 +799,6 @@ export function ReviewTable({
               value: `${summary.comfortBedNotNeededAdmitted} / ${summary.comfortBedNotNeededAll}`,
             }}
           />
-          <SingleStatCard stat={{ label: "分組區域", breakdown: summary.zoneCounts, colorFn: zoneTextColor }} />
         </div>
       </div>
 
@@ -990,17 +995,6 @@ function StatPair({ primary, secondary }: { primary: StatValue; secondary: StatV
       <StatLine stat={primary} size="lg" />
       <div className="my-1 border-t border-[#7a4a3a]" />
       <StatLine stat={secondary} size="sm" />
-    </div>
-  );
-}
-
-// Single-line variant of the dark card, for stats with no admitted/total ratio to
-// show (已取消 reads a mutually-exclusive admission_status directly; 分組區域 is a
-// per-zone breakdown, not a single ratio).
-function SingleStatCard({ stat }: { stat: StatValue }) {
-  return (
-    <div className="rounded-lg border border-[#7a4a3a] bg-[#5a3128] p-2">
-      <StatLine stat={stat} size="lg" />
     </div>
   );
 }
