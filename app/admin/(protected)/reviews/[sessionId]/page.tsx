@@ -45,7 +45,7 @@ export default async function ReviewListPage({
     registrationIds.length
       ? supabase
           .from("registration_files")
-          .select("id, member_id, file_type, registration_id")
+          .select("id, member_id, file_type, storage_path, registration_id")
           .in("registration_id", registrationIds)
       : Promise.resolve({ data: [] }),
   ]);
@@ -57,10 +57,13 @@ export default async function ReviewListPage({
     membersByRegistration.set(m.registration_id, list);
   }
 
-  const filesByRegistration = new Map<string, { id: string; member_id: string | null; file_type: string }[]>();
+  const filesByRegistration = new Map<
+    string,
+    { id: string; member_id: string | null; file_type: string; storage_path: string }[]
+  >();
   for (const f of files ?? []) {
     const list = filesByRegistration.get(f.registration_id) ?? [];
-    list.push({ id: f.id, member_id: f.member_id, file_type: f.file_type });
+    list.push({ id: f.id, member_id: f.member_id, file_type: f.file_type, storage_path: f.storage_path });
     filesByRegistration.set(f.registration_id, list);
   }
 

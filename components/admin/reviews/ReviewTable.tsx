@@ -72,7 +72,7 @@ export type ReviewRowMember = {
   id_number_hash: string | null;
 };
 
-export type ReviewRowFile = { id: string; member_id: string | null; file_type: string };
+export type ReviewRowFile = { id: string; member_id: string | null; file_type: string; storage_path: string };
 
 export type ReviewRow = {
   id: string;

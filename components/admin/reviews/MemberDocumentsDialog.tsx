@@ -61,7 +61,9 @@ function formatBirthDate(rocYear: number | null, month: number | null, day: numb
   return `民國 ${rocYear} 年${month ? ` ${month} 月` : ""}${day ? ` ${day} 日` : ""}`;
 }
 
-type FileInfo = { id: string; member_id: string | null; file_type: string };
+type FileInfo = { id: string; member_id: string | null; file_type: string; storage_path: string };
+
+const IMAGE_EXTENSION_PATTERN = /\.(jpe?g|png|webp|gif)$/i;
 
 const initialState: ActionState = { error: null };
 
@@ -250,11 +252,23 @@ function MemberPanel({
         </div>
       </div>
 
-      <div className="bg-muted/30 grid min-h-64 place-items-center rounded-lg border">
+      <div className="bg-muted/30 grid min-h-64 place-items-center overflow-hidden rounded-lg border">
         {memberFiles.length === 0 ? (
           <p className="text-muted-foreground text-sm">未上傳文件</p>
         ) : signedUrl ? (
-          <iframe src={signedUrl} className="h-64 w-full rounded-lg" title={currentFile?.file_type} />
+          IMAGE_EXTENSION_PATTERN.test(currentFile?.storage_path ?? "") ? (
+            // Images render at their native size inside an iframe (no scaling), which is
+            // why a tall phone-camera photo used to overflow with scrollbars instead of
+            // fitting the dialog — an <img> scales to the container width like any other
+            // image, capped in height so a very tall photo still fits on screen.
+            <img
+              src={signedUrl}
+              alt={currentFile?.file_type ?? "證明文件"}
+              className="max-h-[70vh] w-full rounded-lg object-contain"
+            />
+          ) : (
+            <iframe src={signedUrl} className="h-[70vh] w-full rounded-lg" title={currentFile?.file_type} />
+          )
         ) : (
           <p className="text-muted-foreground text-sm">載入中...</p>
         )}
