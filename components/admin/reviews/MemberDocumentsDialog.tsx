@@ -264,10 +264,10 @@ function MemberPanel({
             <img
               src={signedUrl}
               alt={currentFile?.file_type ?? "證明文件"}
-              className="max-h-[70vh] w-full rounded-lg object-contain"
+              className="max-h-[45vh] w-full rounded-lg object-contain"
             />
           ) : (
-            <iframe src={signedUrl} className="h-[70vh] w-full rounded-lg" title={currentFile?.file_type} />
+            <iframe src={signedUrl} className="h-[45vh] w-full rounded-lg" title={currentFile?.file_type} />
           )
         ) : (
           <p className="text-muted-foreground text-sm">載入中...</p>
@@ -418,7 +418,7 @@ export function MemberDocumentsDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-3xl sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>證明文件與減免審核</DialogTitle>
         </DialogHeader>
