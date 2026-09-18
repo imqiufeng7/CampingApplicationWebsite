@@ -749,6 +749,12 @@ export function ReviewTable({
     columns,
     getRowId: (row) => row.id,
     initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
+    // Every inline edit (updateRegistrationField) revalidates the reviews page,
+    // which hands this table a brand-new `data` array. TanStack Table v9 treats
+    // that as reason to jump back to page 1 unless told otherwise — see
+    // node_modules/@tanstack/table-core/skills/pagination/SKILL.md
+    // ("Fighting automatic page resets").
+    autoResetPageIndex: false,
   });
 
   const selectedIds = table.getSelectedRowModel().rows.map((row) => row.original.id);
