@@ -173,6 +173,9 @@ const reviewTableFeatures = tableFeatures({
 export function ReviewTable({
   sessionId,
   data: serverData,
+  sessionName,
+  sessionDateStart,
+  sessionDateEnd,
   identityTypeMap,
   feeCategoryMap,
   registrationCategoryMap,
@@ -182,6 +185,9 @@ export function ReviewTable({
 }: {
   sessionId: string;
   data: ReviewRow[];
+  sessionName: string;
+  sessionDateStart: string | null;
+  sessionDateEnd: string | null;
   identityTypeMap: Map<string, string>;
   feeCategoryMap: Map<string, string>;
   registrationCategoryMap: Map<string, string>;
@@ -910,7 +916,13 @@ export function ReviewTable({
         </DropdownMenu>
 
         <div data-tour="review-export">
-          <ExportMenu rows={filtered} registrationCategoryMap={registrationCategoryMap} />
+          <ExportMenu
+            rows={filtered}
+            registrationCategoryMap={registrationCategoryMap}
+            sessionName={sessionName}
+            sessionDateStart={sessionDateStart}
+            sessionDateEnd={sessionDateEnd}
+          />
         </div>
 
         {canEditAdmission && <SendSelectedResultsDialog sessionId={sessionId} registrationIds={selectedIds} />}

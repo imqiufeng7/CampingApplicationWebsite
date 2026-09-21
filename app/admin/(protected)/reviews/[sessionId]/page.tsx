@@ -18,10 +18,14 @@ export default async function ReviewListPage({
 
   const [{ data: session }, { data: identityTypes }, { data: feeCategories }, { data: registrationCategories }] =
     await Promise.all([
-      supabase.from("event_sessions").select("name").eq("id", sessionId).maybeSingle(),
+      supabase.from("event_sessions").select("name, date_start, date_end").eq("id", sessionId).maybeSingle(),
       supabase.from("session_identity_types").select("id, name").eq("session_id", sessionId),
       supabase.from("session_fee_categories").select("id, label, code").eq("session_id", sessionId),
-      supabase.from("session_registration_categories").select("id, label").eq("session_id", sessionId),
+      supabase
+        .from("session_registration_categories")
+        .select("id, label")
+        .eq("session_id", sessionId)
+        .order("sort_order", { ascending: true }),
     ]);
 
   const { data: registrations } = await supabase
@@ -176,6 +180,9 @@ export default async function ReviewListPage({
           <ReviewTable
             sessionId={sessionId}
             data={rows}
+            sessionName={session?.name ?? ""}
+            sessionDateStart={session?.date_start ?? null}
+            sessionDateEnd={session?.date_end ?? null}
             identityTypeMap={identityTypeMap}
             feeCategoryMap={feeCategoryMap}
             registrationCategoryMap={registrationCategoryMap}
