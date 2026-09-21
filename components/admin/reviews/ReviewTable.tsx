@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   columnVisibilityFeature,
@@ -172,7 +172,7 @@ const reviewTableFeatures = tableFeatures({
 
 export function ReviewTable({
   sessionId,
-  data,
+  data: serverData,
   identityTypeMap,
   feeCategoryMap,
   registrationCategoryMap,
@@ -223,9 +223,40 @@ export function ReviewTable({
   const canViewDocuments = fieldPermissions["身份證明文件"] !== "hidden";
   const canEditFeeReview = fieldPermissions["免付費審核結果"] === "editable";
 
+  // updateRegistrationField only revalidates the page for fields the server-rendered
+  // parts depend on (see that action), so a successful cell edit is mirrored here as a
+  // local patch over the server rows — otherwise a row that remounts (page change,
+  // filter) would re-init its cell from the stale server value. Patches are tied to the
+  // exact server `data` array they were made against and dropped once a fresh one arrives
+  // (which already contains the saved value).
+  const serverDataRef = useRef(serverData);
+  useEffect(() => {
+    serverDataRef.current = serverData;
+  }, [serverData]);
+  const [patchState, setPatchState] = useState<{
+    base: ReviewRow[];
+    byId: Record<string, Partial<ReviewRow>>;
+  }>({ base: serverData, byId: {} });
+  const data = useMemo(() => {
+    if (patchState.base !== serverData) return serverData;
+    const byId = patchState.byId;
+    return serverData.map((r) => (byId[r.id] ? { ...r, ...byId[r.id] } : r));
+  }, [serverData, patchState]);
+
   function saveField(registrationId: string, field: RegistrationEditableField) {
-    return (value: string | number | boolean) =>
-      updateRegistrationField(sessionId, registrationId, field, value);
+    return async (value: string | number | boolean) => {
+      const result = await updateRegistrationField(sessionId, registrationId, field, value);
+      if (!result.error) {
+        const patch: Partial<ReviewRow> = { [field]: value };
+        if (field === "is_cancelled" && !value) patch.cancel_reason = null;
+        setPatchState((prev) => {
+          const base = serverDataRef.current;
+          const byId = prev.base === base ? prev.byId : {};
+          return { base, byId: { ...byId, [registrationId]: { ...byId[registrationId], ...patch } } };
+        });
+      }
+      return result;
+    };
   }
 
   const orderIndex = useMemo(

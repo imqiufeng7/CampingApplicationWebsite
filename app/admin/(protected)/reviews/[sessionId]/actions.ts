@@ -67,7 +67,13 @@ export async function updateRegistrationField(
     return { error: error.message };
   }
 
-  revalidatePath(`/admin/reviews/${sessionId}`);
+  // Only these two feed server-rendered parts of the page (the 發送結果 dialog's
+  // 正取/備取 counts). The review table mirrors every other cell edit locally, so
+  // skipping the full-page refetch here is what keeps the cell from staying disabled
+  // (useTransition's `pending`) until every review-page query has re-run.
+  if (field === "admission_status" || field === "is_cancelled") {
+    revalidatePath(`/admin/reviews/${sessionId}`);
+  }
   return { error: null };
 }
 
