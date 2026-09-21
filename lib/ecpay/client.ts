@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { EcpayOrderInput } from "@/lib/ecpay/types";
 import { taipeiParts } from "@/lib/timezone";
+import { computeEcpayExpiry } from "@/lib/ecpay/expiry";
 
 function getCredentials() {
   const merchantId = process.env.ECPAY_MERCHANT_ID;
@@ -104,6 +105,7 @@ export function buildAioCheckoutParams(order: EcpayOrderInput) {
     ChoosePayment: "ALL",
     EncryptType: 1,
     ...(order.clientBackUrl ? { ClientBackURL: order.clientBackUrl } : {}),
+    ...(order.paymentDeadline ? computeEcpayExpiry(order.paymentDeadline) : {}),
   };
 
   const CheckMacValue = computeCheckMacValue(baseParams);

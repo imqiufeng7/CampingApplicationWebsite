@@ -5,6 +5,7 @@ export interface EcpayOrderInput {
   itemName: string;
   returnUrl: string;
   clientBackUrl?: string;
+  paymentDeadline?: Date | null;
 }
 
 export interface EcpayCallbackPayload {

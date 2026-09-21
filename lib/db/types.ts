@@ -204,6 +204,7 @@ export interface Database {
           payment_amount: number;
           payment_method: PaymentMethod | null;
           payment_deadline: string | null;
+          paid_after_deadline: boolean;
           result_published_at: string | null;
           remaining_self_edits: number;
           ecpay_trade_no: string | null;
@@ -246,6 +247,7 @@ export interface Database {
             | "payment_amount"
             | "payment_method"
             | "payment_deadline"
+            | "paid_after_deadline"
             | "result_published_at"
             | "remaining_self_edits"
             | "ecpay_trade_no"

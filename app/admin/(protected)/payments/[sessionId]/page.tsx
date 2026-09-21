@@ -34,7 +34,7 @@ export default async function PaymentListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, manual_transfer_last5, ecpay_trade_no, is_cancelled"
+      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, paid_after_deadline, manual_transfer_last5, ecpay_trade_no, is_cancelled"
     )
     .eq("session_id", sessionId)
     .order("submitted_at", { ascending: true });
@@ -114,6 +114,9 @@ export default async function PaymentListPage({
                     >
                       {r.is_cancelled ? "取消" : r.payment_status}
                     </Badge>
+                    {r.paid_after_deadline && (
+                      <Badge variant="destructive" className="ml-1">逾期付款</Badge>
+                    )}
                   </TableCell>
                   <TableCell>{r.payment_amount}</TableCell>
                   <TableCell>{paymentMethodLabel(r.payment_method)}</TableCell>

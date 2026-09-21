@@ -77,6 +77,7 @@ export async function GET(
     itemName: `${session?.name ?? "活動"}報名費`,
     returnUrl: `${siteUrl}/api/payments/ecpay/callback`,
     clientBackUrl: siteUrl,
+    paymentDeadline: registration.payment_deadline ? new Date(registration.payment_deadline) : null,
   });
 
   const inputs = Object.entries(orderParams)

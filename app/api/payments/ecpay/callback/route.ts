@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyCheckMacValue } from "@/lib/ecpay/client";
+import { isPaidAfterDeadline } from "@/lib/ecpay/paidLate";
 
 // Server-to-server webhook from ECPay — no admin session, no CSRF token, nothing but
 // the CheckMacValue to prove authenticity. Runs entirely on the service-role client
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: registration } = await admin
     .from("registrations")
-    .select("id, payment_status")
+    .select("id, payment_status, payment_deadline")
     .eq("ecpay_merchant_trade_no", payload.MerchantTradeNo)
     .maybeSingle();
 
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       .update({
         payment_status: "已完成",
         ecpay_trade_no: payload.TradeNo,
+        paid_after_deadline: isPaidAfterDeadline(registration.payment_deadline, payload.PaymentDate),
       })
       .eq("id", registration.id);
   }
