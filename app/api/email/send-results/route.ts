@@ -72,6 +72,14 @@ export async function POST(request: Request) {
     (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
   );
 
+  const { data: registrationCategories } = await admin
+    .from("session_registration_categories")
+    .select("id, label, is_free")
+    .eq("session_id", sessionId);
+  const freeRegistrationCategoryLabelMap = new Map(
+    (registrationCategories ?? []).filter((rc) => rc.is_free).map((rc) => [rc.id, rc.label])
+  );
+
   // 正取/備取 each have their own independently-editable template — fetch both once
   // up front rather than per-registration inside the loop.
   const [admittedTemplate, waitlistedTemplate] = await Promise.all([
@@ -122,6 +130,9 @@ export async function POST(request: Request) {
       paymentDeadline: registration.payment_deadline,
       ecpayLink,
       manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
+      freeRegistrationCategoryLabel: registration.registration_category_id
+        ? (freeRegistrationCategoryLabelMap.get(registration.registration_category_id) ?? null)
+        : null,
     });
     const emailType = reviewResultEmailType(registration.admission_status);
     const template = registration.admission_status === "備取" ? waitlistedTemplate : admittedTemplate;

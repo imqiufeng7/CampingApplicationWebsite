@@ -33,6 +33,21 @@ describe("buildReviewResultVars member descriptions", () => {
     expect(vars["繳費資訊"]).toBe("無需繳費。");
   });
 
+  it("names the registration's free category (e.g. 自搭帳) when that's why a member has no fee category", () => {
+    const vars = buildReviewResultVars({
+      ...base,
+      members: [
+        { name: "蔡炘哲", feeReviewResult: "無需繳費", feeCategoryLabel: null },
+        { name: "陳羿晴", feeReviewResult: "無需繳費", feeCategoryLabel: null },
+      ],
+      paymentAmount: 0,
+      freeRegistrationCategoryLabel: "自搭帳",
+    });
+    expect(vars["成員審核結果"]).toBe(
+      "聯絡人(成員1)：蔡炘哲，因申請自搭帳，無需繳交報名費\n成員2：陳羿晴，因申請自搭帳，無需繳交報名費"
+    );
+  });
+
   it("still credits the category when one was actually granted", () => {
     const vars = buildReviewResultVars({
       ...base,

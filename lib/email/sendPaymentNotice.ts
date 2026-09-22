@@ -25,7 +25,7 @@ export async function sendPaymentNoticeEmail(
   const { data: registration } = await admin
     .from("registrations")
     .select(
-      "id, session_id, contact_email, admission_status, payment_amount, payment_method, payment_deadline, ecpay_link, result_published_at"
+      "id, session_id, registration_category_id, contact_email, admission_status, payment_amount, payment_method, payment_deadline, ecpay_link, result_published_at"
     )
     .eq("id", registrationId)
     .maybeSingle();
@@ -54,6 +54,18 @@ export async function sendPaymentNoticeEmail(
     (feeCategories ?? []).map((fc) => [fc.id, fc.code ? `${fc.code} ${fc.label}` : fc.label])
   );
 
+  let freeRegistrationCategoryLabel: string | null = null;
+  if (registration.registration_category_id) {
+    const { data: registrationCategory } = await admin
+      .from("session_registration_categories")
+      .select("label, is_free")
+      .eq("id", registration.registration_category_id)
+      .maybeSingle();
+    if (registrationCategory?.is_free) {
+      freeRegistrationCategoryLabel = registrationCategory.label;
+    }
+  }
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   let ecpayLink: string | null = registration.ecpay_link;
   if (registration.payment_amount > 0 && registration.payment_method === "online") {
@@ -79,6 +91,7 @@ export async function sendPaymentNoticeEmail(
     paymentDeadline: registration.payment_deadline,
     ecpayLink,
     manualTransferAccountInfo: MANUAL_TRANSFER_ACCOUNT_INFO,
+    freeRegistrationCategoryLabel,
   });
 
   const emailType = reviewResultEmailType(registration.admission_status);

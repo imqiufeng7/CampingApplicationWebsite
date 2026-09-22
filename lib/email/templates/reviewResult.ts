@@ -22,6 +22,13 @@ export interface ReviewResultEmailInput {
   sessionDateEnd: string | null;
   admissionStatus: AdmissionStatus;
   members: ReviewResultMemberInfo[];
+  // The registration's own category (session_registration_categories — e.g. 自搭帳 vs
+  // 主辦搭設帳), only when that category is_free: true. fn_submit_registration
+  // auto-waives every member of a free category with no fee_category_id to pick, so a
+  // member can be free purely because of the registration's category rather than an
+  // individually-granted fee waiver — describeMember below names that category instead
+  // of just saying "無需繳交報名費" with no stated reason.
+  freeRegistrationCategoryLabel?: string | null;
   // Flat per-paying-member fee (event_sessions.fee_discount_per_person) — the same
   // figure fn_recompute_registration_payment multiplies by the paying-member count to
   // get registrations.payment_amount, so summing each member's own amount here always
@@ -63,12 +70,21 @@ export const DEFAULT_REVIEW_RESULT_BODY = `{{第一位成員姓名}} 您好，
 // 類別、直接把某成員的審核結果手動改成「無需繳費」（EditableSelect 允許這樣做），先看
 // feeCategoryLabel 的舊寫法在這種情況會誤判成「未申請免付費資格，需繳費」，跟總金額
 // （payment_amount，同樣只看 fee_review_result）兜不起來，寄出去的信文字互相矛盾。
-function describeMember(m: ReviewResultMemberInfo, index: number, feeDiscountPerPerson: number): string {
+function describeMember(
+  m: ReviewResultMemberInfo,
+  index: number,
+  feeDiscountPerPerson: number,
+  freeRegistrationCategoryLabel?: string | null
+): string {
   const label = index === 0 ? "聯絡人(成員1)" : `成員${index + 1}`;
   if (m.feeReviewResult === "無需繳費") {
-    return m.feeCategoryLabel
-      ? `${label}：${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`
-      : `${label}：${m.name}，無需繳交報名費`;
+    if (m.feeCategoryLabel) {
+      return `${label}：${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`;
+    }
+    if (freeRegistrationCategoryLabel) {
+      return `${label}：${m.name}，因申請${freeRegistrationCategoryLabel}，無需繳交報名費`;
+    }
+    return `${label}：${m.name}，無需繳交報名費`;
   }
   if (!m.feeCategoryLabel) {
     return `${label}：${m.name}，未申請免付費申請資格，需繳報名費${feeDiscountPerPerson}元`;
@@ -89,7 +105,7 @@ export function buildReviewResultVars(input: ReviewResultEmailInput): Record<str
         : "審核結果請見以下說明。";
 
   const memberSection = input.members
-    .map((m, i) => describeMember(m, i, input.feeDiscountPerPerson))
+    .map((m, i) => describeMember(m, i, input.feeDiscountPerPerson, input.freeRegistrationCategoryLabel))
     .join("\n");
 
   // 備取/取消 never get payment details — 正取 is confirmed and payment_amount is
