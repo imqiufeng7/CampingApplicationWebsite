@@ -59,14 +59,19 @@ export const DEFAULT_REVIEW_RESULT_BODY = `{{第一位成員姓名}} 您好，
 // 系統自動組成逐人結果描述文字，第一位成員標示為「聯絡人(成員1)」，其餘依序「成員2」
 // 「成員3」...。付費與否採跟 fn_recompute_registration_payment 一致的二分法——
 // fee_review_result 是「無需繳費」才算免繳，其餘（需繳費／審核中等）一律視為需繳交這
-// 筆固定金額，兩者才不會兜不起來。
+// 筆固定金額，兩者才不會兜不起來。fee_review_result 必須先判斷：審核時可以不選免付費
+// 類別、直接把某成員的審核結果手動改成「無需繳費」（EditableSelect 允許這樣做），先看
+// feeCategoryLabel 的舊寫法在這種情況會誤判成「未申請免付費資格，需繳費」，跟總金額
+// （payment_amount，同樣只看 fee_review_result）兜不起來，寄出去的信文字互相矛盾。
 function describeMember(m: ReviewResultMemberInfo, index: number, feeDiscountPerPerson: number): string {
   const label = index === 0 ? "聯絡人(成員1)" : `成員${index + 1}`;
+  if (m.feeReviewResult === "無需繳費") {
+    return m.feeCategoryLabel
+      ? `${label}：${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`
+      : `${label}：${m.name}，無需繳交報名費`;
+  }
   if (!m.feeCategoryLabel) {
     return `${label}：${m.name}，未申請免付費申請資格，需繳報名費${feeDiscountPerPerson}元`;
-  }
-  if (m.feeReviewResult === "無需繳費") {
-    return `${label}：${m.name}，符合${m.feeCategoryLabel}申請資格，無需繳交報名費`;
   }
   return `${label}：${m.name}，未符合${m.feeCategoryLabel}申請資格，需繳報名費${feeDiscountPerPerson}元`;
 }
