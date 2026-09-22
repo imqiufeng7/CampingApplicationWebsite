@@ -127,9 +127,12 @@ export default async function DashboardPage() {
 
     stats.reviewStatus[r.review_status] = (stats.reviewStatus[r.review_status] ?? 0) + 1;
     stats.admissionStatus[r.admission_status] = (stats.admissionStatus[r.admission_status] ?? 0) + 1;
-    stats.paymentStatus[r.payment_status] = (stats.paymentStatus[r.payment_status] ?? 0) + 1;
 
-    if (!r.is_cancelled) {
+    // 繳費情況 only reflects admitted (正取) groups — a still-waitlisted or pending
+    // group isn't guaranteed to show up, so counting its payment status/amount here
+    // overstated what's actually owed or collected.
+    if (!r.is_cancelled && r.admission_status === "正取") {
+      stats.paymentStatus[r.payment_status] = (stats.paymentStatus[r.payment_status] ?? 0) + 1;
       if (r.payment_status === "已完成") stats.amountCollected += r.payment_amount;
       if (r.payment_status === "待繳費") stats.amountPending += r.payment_amount;
     }
@@ -286,7 +289,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <div data-tour={isFirst ? "dashboard-payment-status" : undefined}>
-                  <p className="text-muted-foreground mb-1.5">繳費情況</p>
+                  <p className="text-muted-foreground mb-1.5">繳費情況（已錄取）</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {Object.entries(stats.paymentStatus).map(([k, v]) => (
                       <div
@@ -297,7 +300,7 @@ export default async function DashboardPage() {
                         <div className="text-xs">{k}</div>
                       </div>
                     ))}
-                    {stats.totalGroups === 0 && (
+                    {Object.keys(stats.paymentStatus).length === 0 && (
                       <span className="text-muted-foreground col-span-full">尚無資料</span>
                     )}
                   </div>
@@ -311,7 +314,7 @@ export default async function DashboardPage() {
                         / ${stats.amountPending.toLocaleString("zh-TW")}
                       </span>
                     </div>
-                    <div className="text-muted-foreground text-xs">已收金額 / 待收金額</div>
+                    <div className="text-muted-foreground text-xs">已收金額 / 待收金額（已錄取）</div>
                   </div>
                 </div>
 
