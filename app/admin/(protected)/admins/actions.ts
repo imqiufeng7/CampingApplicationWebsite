@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { getEmailAdapter } from "@/lib/email";
 import { getGlobalEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
+import { wrapEmailLayout } from "@/lib/email/emailLayout";
 import {
   buildAdminInviteVars,
   DEFAULT_ADMIN_INVITE_SUBJECT,
@@ -80,7 +81,13 @@ async function sendAccountSetupLink(
   const sendResult = await adapter.sendEmail({
     to: email,
     subject: renderTemplate(template.subjectTemplate, vars),
-    body: renderHtmlTemplate(template.bodyTemplate, vars),
+    body: wrapEmailLayout({
+      heading: "👋 邀請你加入後台管理",
+      subheading: `角色：${roleLabel}`,
+      bodyHtml: renderHtmlTemplate(template.bodyTemplate, vars),
+      ctaLabel: "設定密碼並登入",
+      ctaUrl: setupUrl,
+    }),
   });
 
   if (sendResult.status !== "sent") {

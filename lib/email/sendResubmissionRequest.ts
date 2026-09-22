@@ -4,6 +4,7 @@ import type { Database } from "@/lib/db/types";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
+import { wrapEmailLayout, EVENT_EYEBROW } from "@/lib/email/emailLayout";
 import {
   buildResubmissionRequestVars,
   DEFAULT_RESUBMISSION_REQUEST_SUBJECT,
@@ -47,7 +48,7 @@ export async function sendResubmissionRequestEmail(
 
   const { data: session } = await admin
     .from("event_sessions")
-    .select("name")
+    .select("name, theme_color")
     .eq("id", registration.session_id)
     .maybeSingle();
 
@@ -60,12 +61,13 @@ export async function sendResubmissionRequestEmail(
     .maybeSingle();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const editUrl = `${siteUrl}/edit/${registration.edit_token}`;
   const vars = buildResubmissionRequestVars({
     sessionName: session?.name ?? "",
     registrationNo: formatRegistrationNo(registration.registration_seq),
     firstMemberName: firstMember?.name ?? "",
     memberIssues,
-    editUrl: `${siteUrl}/edit/${registration.edit_token}`,
+    editUrl,
   });
 
   const template = await getEmailTemplate(admin, "退回補件", registration.session_id, {
@@ -73,7 +75,16 @@ export async function sendResubmissionRequestEmail(
     bodyTemplate: DEFAULT_RESUBMISSION_REQUEST_BODY,
   });
   const subject = renderTemplate(template.subjectTemplate, vars);
-  const body = renderHtmlTemplate(template.bodyTemplate, vars);
+  const innerBody = renderHtmlTemplate(template.bodyTemplate, vars);
+  const body = wrapEmailLayout({
+    eyebrow: EVENT_EYEBROW,
+    heading: "📎 需要您補充資料",
+    subheading: session?.name,
+    accentColor: session?.theme_color,
+    bodyHtml: innerBody,
+    ctaLabel: "前往補件",
+    ctaUrl: editUrl,
+  });
 
   const adapter = getEmailAdapter();
   const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });

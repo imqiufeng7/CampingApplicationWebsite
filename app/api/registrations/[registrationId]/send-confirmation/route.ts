@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
+import { wrapEmailLayout, EVENT_EYEBROW } from "@/lib/email/emailLayout";
 import {
   buildRegistrationConfirmationVars,
   DEFAULT_REGISTRATION_CONFIRMATION_SUBJECT,
@@ -44,7 +45,11 @@ export async function POST(
   }
 
   const [{ data: session }, { data: members }] = await Promise.all([
-    admin.from("event_sessions").select("name").eq("id", registration.session_id).maybeSingle(),
+    admin
+      .from("event_sessions")
+      .select("name, theme_color")
+      .eq("id", registration.session_id)
+      .maybeSingle(),
     admin
       .from("registration_members")
       .select("name")
@@ -54,6 +59,7 @@ export async function POST(
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const registrationNo = `R${String(registration.registration_seq).padStart(6, "0")}`;
+  const lookupUrl = `${siteUrl}/lookup?email=${encodeURIComponent(registration.contact_email)}&phone=${encodeURIComponent(registration.contact_phone)}`;
 
   const vars = buildRegistrationConfirmationVars({
     sessionName: session?.name ?? "",
@@ -61,7 +67,7 @@ export async function POST(
     contactEmail: registration.contact_email,
     contactPhone: registration.contact_phone,
     members: (members ?? []).map((m) => ({ name: m.name })),
-    lookupUrl: `${siteUrl}/lookup?email=${encodeURIComponent(registration.contact_email)}&phone=${encodeURIComponent(registration.contact_phone)}`,
+    lookupUrl,
   });
 
   const template = await getEmailTemplate(admin, "報名確認", registration.session_id, {
@@ -69,7 +75,16 @@ export async function POST(
     bodyTemplate: DEFAULT_REGISTRATION_CONFIRMATION_BODY,
   });
   const subject = renderTemplate(template.subjectTemplate, vars);
-  const body = renderHtmlTemplate(template.bodyTemplate, vars);
+  const innerBody = renderHtmlTemplate(template.bodyTemplate, vars);
+  const body = wrapEmailLayout({
+    eyebrow: EVENT_EYEBROW,
+    heading: "📋 報名資料確認",
+    subheading: session?.name,
+    accentColor: session?.theme_color,
+    bodyHtml: innerBody,
+    ctaLabel: "查詢報名進度",
+    ctaUrl: lookupUrl,
+  });
 
   const adapter = getEmailAdapter();
   const result = await adapter.sendEmail({ to: registration.contact_email, subject, body });

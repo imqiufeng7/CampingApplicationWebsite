@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAdapter } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email/getTemplate";
 import { renderTemplate, renderHtmlTemplate } from "@/lib/email/renderTemplate";
+import { wrapEmailLayout, EVENT_EYEBROW } from "@/lib/email/emailLayout";
 import {
   buildReviewResultVars,
   reviewResultEmailType,
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
   const { data: session } = await admin
     .from("event_sessions")
-    .select("name, date_start, date_end, fee_discount_per_person")
+    .select("name, date_start, date_end, fee_discount_per_person, theme_color")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -125,7 +126,19 @@ export async function POST(request: Request) {
     const emailType = reviewResultEmailType(registration.admission_status);
     const template = registration.admission_status === "備取" ? waitlistedTemplate : admittedTemplate;
     const subject = renderTemplate(template.subjectTemplate, vars);
-    const emailBody = renderHtmlTemplate(template.bodyTemplate, vars);
+    const innerBody = renderHtmlTemplate(template.bodyTemplate, vars);
+    const emailBody = wrapEmailLayout({
+      eyebrow: EVENT_EYEBROW,
+      heading:
+        registration.admission_status === "備取"
+          ? `📋 ${vars["第一位成員姓名"]} 您目前為備取`
+          : `🎉 ${vars["第一位成員姓名"]} 恭喜正取！`,
+      subheading: session?.name,
+      accentColor: session?.theme_color,
+      bodyHtml: innerBody,
+      ctaLabel: registration.admission_status === "正取" && ecpayLink ? "前往繳費" : undefined,
+      ctaUrl: registration.admission_status === "正取" && ecpayLink ? ecpayLink : undefined,
+    });
 
     const result = await adapter.sendEmail({
       to: registration.contact_email,
