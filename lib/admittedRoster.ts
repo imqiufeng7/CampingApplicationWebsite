@@ -1,8 +1,11 @@
 // 錄取名單 (public-facing roster): keeps first and last character of the contact name,
 // masks the middle with a Latin "O" (e.g. 謝O如), and only exposes the phone's last 3 digits.
 export function maskNameForRoster(name: string): string {
-  const chars = [...name];
-  if (chars.length <= 1) return name;
+  // Stray leading/trailing whitespace in a stored name (a data-entry typo) would
+  // otherwise count as a real character, shifting the mask by one and turning e.g.
+  // " 廖芳榮" into " OO榮" instead of "廖O榮".
+  const chars = [...name.trim()];
+  if (chars.length <= 1) return chars.join("");
   if (chars.length === 2) return `${chars[0]}O`;
   return `${chars[0]}${"O".repeat(chars.length - 2)}${chars[chars.length - 1]}`;
 }

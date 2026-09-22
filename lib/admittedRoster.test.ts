@@ -11,6 +11,10 @@ describe("maskNameForRoster", () => {
     expect(maskNameForRoster("王")).toBe("王");
     expect(maskNameForRoster("")).toBe("");
   });
+  it("ignores stray leading/trailing whitespace from data-entry typos", () => {
+    expect(maskNameForRoster(" 廖芳榮")).toBe("廖O榮");
+    expect(maskNameForRoster("黃意婷 ")).toBe("黃O婷");
+  });
 });
 
 describe("phoneLast3", () => {
