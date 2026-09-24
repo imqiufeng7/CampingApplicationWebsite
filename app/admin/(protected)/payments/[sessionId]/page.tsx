@@ -31,12 +31,15 @@ export default async function PaymentListPage({
     .eq("id", sessionId)
     .maybeSingle();
 
+  // Only 正取 belongs on a payment worklist — 備取/取消 were never going to pay, so
+  // listing them alongside admitted groups just added noise to reconcile against.
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
       "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, paid_after_deadline, manual_transfer_last5, ecpay_trade_no, is_cancelled"
     )
     .eq("session_id", sessionId)
+    .eq("admission_status", "正取")
     .order("submitted_at", { ascending: true });
 
   const registrationIds = (registrations ?? []).map((r) => r.id);
