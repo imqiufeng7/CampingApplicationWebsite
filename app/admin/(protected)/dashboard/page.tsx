@@ -100,7 +100,7 @@ export default async function DashboardPage() {
       admissionStatus: Record<string, number>;
       paymentStatus: Record<string, number>;
       amountCollected: number;
-      amountPending: number;
+      amountOwed: number;
     }
   >();
 
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
       admissionStatus: {},
       paymentStatus: {},
       amountCollected: 0,
-      amountPending: 0,
+      amountOwed: 0,
     });
   }
 
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
     if (!r.is_cancelled && r.admission_status === "正取") {
       stats.paymentStatus[r.payment_status] = (stats.paymentStatus[r.payment_status] ?? 0) + 1;
       if (r.payment_status === "已完成") stats.amountCollected += r.payment_amount;
-      if (r.payment_status === "待繳費") stats.amountPending += r.payment_amount;
+      if (r.payment_status === "待繳費") stats.amountOwed += r.payment_amount;
     }
   }
 
@@ -304,18 +304,32 @@ export default async function DashboardPage() {
                       <span className="text-muted-foreground col-span-full">尚無資料</span>
                     )}
                   </div>
-                  <div className="mt-2 rounded-lg border p-2 text-center">
-                    <div className="font-mono">
-                      <span className="text-lg font-semibold">
-                        ${stats.amountCollected.toLocaleString("zh-TW")}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {" "}
-                        / ${stats.amountPending.toLocaleString("zh-TW")}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground text-xs">已收金額 / 待收金額（已錄取）</div>
-                  </div>
+                  {(() => {
+                    const amountNeeded = stats.amountCollected + stats.amountOwed;
+                    const collectedPct =
+                      amountNeeded > 0 ? Math.min(100, Math.round((stats.amountCollected / amountNeeded) * 100)) : 0;
+                    return (
+                      <div className="mt-2 rounded-lg border p-2 text-center">
+                        <div className="font-mono">
+                          <span className="text-lg font-semibold">
+                            ${stats.amountCollected.toLocaleString("zh-TW")}
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            {" "}
+                            / ${amountNeeded.toLocaleString("zh-TW")}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground text-xs">已收金額 / 應收金額（已錄取）</div>
+                        <div className="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
+                          <div
+                            className="bg-primary h-full rounded-full transition-[width]"
+                            style={{ width: `${collectedPct}%` }}
+                          />
+                        </div>
+                        <div className="text-muted-foreground mt-1 text-xs">{collectedPct}% 已收齊</div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex gap-2" data-tour={isFirst ? "dashboard-goto-review" : undefined}>
