@@ -204,6 +204,7 @@ export interface Database {
           payment_amount: number;
           payment_method: PaymentMethod | null;
           payment_deadline: string | null;
+          payment_deadline_is_manual: boolean;
           paid_after_deadline: boolean;
           result_published_at: string | null;
           remaining_self_edits: number;
@@ -247,6 +248,7 @@ export interface Database {
             | "payment_amount"
             | "payment_method"
             | "payment_deadline"
+            | "payment_deadline_is_manual"
             | "paid_after_deadline"
             | "result_published_at"
             | "remaining_self_edits"

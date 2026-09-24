@@ -127,7 +127,10 @@ export async function extendPaymentDeadlineAndResend(
   const supabase = await createClient();
   const { error } = await supabase
     .from("registrations")
-    .update({ payment_deadline: taipeiInputValueToIso(newDeadlineLocal) })
+    // Marks this as a deliberate per-registrant override so a later change to the
+    // session's own default deadline (trg_sync_registration_payment_deadline) won't
+    // clobber it.
+    .update({ payment_deadline: taipeiInputValueToIso(newDeadlineLocal), payment_deadline_is_manual: true })
     .eq("id", registrationId);
 
   if (error) {
