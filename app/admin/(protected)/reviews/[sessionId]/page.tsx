@@ -23,7 +23,7 @@ export default async function ReviewListPage({
       supabase.from("session_fee_categories").select("id, label, code").eq("session_id", sessionId),
       supabase
         .from("session_registration_categories")
-        .select("id, label")
+        .select("id, label, is_free")
         .eq("session_id", sessionId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -31,7 +31,7 @@ export default async function ReviewListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, submitted_at, contact_email, contact_phone, comfort_bed_needed, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, payment_method, ecpay_payment_type, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
+      "id, registration_seq, submitted_at, contact_email, contact_phone, comfort_bed_needed, review_status, admission_status, waitlist_rank, group_zone, group_number, sleeping_bag_own_qty, sleeping_bag_rent_qty, payment_status, payment_amount, payment_method, ecpay_payment_type, notice_replied_at, notice_plate_number, admin_note, is_cancelled, cancel_reason, duplicate_flag, registration_category_id"
     )
     .eq("session_id", sessionId);
 
@@ -150,6 +150,10 @@ export default async function ReviewListPage({
     (registrationCategories ?? []).map((rc) => [rc.id, rc.label])
   );
 
+  const freeCategoryIds = new Set(
+    (registrationCategories ?? []).filter((rc) => rc.is_free).map((rc) => rc.id)
+  );
+
   const rows: ReviewRow[] = sorted.map((r) => ({
     ...r,
     memberNames: (membersByRegistration.get(r.id) ?? []).map((m) => m.name),
@@ -186,6 +190,7 @@ export default async function ReviewListPage({
             identityTypeMap={identityTypeMap}
             feeCategoryMap={feeCategoryMap}
             registrationCategoryMap={registrationCategoryMap}
+            freeCategoryIds={freeCategoryIds}
             fieldPermissions={admin.fieldPermissions}
             isVendor={admin.isVendor}
             initialSortIds={sorted.map((r) => r.id)}

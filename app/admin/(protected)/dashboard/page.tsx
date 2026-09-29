@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ActivityLogFeed } from "@/components/admin/ActivityLogFeed";
 import { OnboardingTour } from "@/components/admin/OnboardingTour";
 import { dashboardTourSteps } from "@/lib/tours/steps";
+import { isNoticeEligible } from "@/lib/noticeReply";
 
 const REVIEW_COLORS: Record<string, string> = {
   審核中: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
         ? supabase
             .from("registrations")
             .select(
-              "id, session_id, registration_category_id, review_status, admission_status, payment_status, payment_amount, is_cancelled"
+              "id, session_id, registration_category_id, review_status, admission_status, payment_status, payment_amount, is_cancelled, notice_replied_at"
             )
             .in("session_id", sessionIds)
         : Promise.resolve({ data: [] }),
@@ -101,6 +102,8 @@ export default async function DashboardPage() {
       paymentStatus: Record<string, number>;
       amountCollected: number;
       amountOwed: number;
+      noticeExpected: number;
+      noticeReplied: number;
     }
   >();
 
@@ -114,6 +117,8 @@ export default async function DashboardPage() {
       paymentStatus: {},
       amountCollected: 0,
       amountOwed: 0,
+      noticeExpected: 0,
+      noticeReplied: 0,
     });
   }
 
@@ -135,6 +140,11 @@ export default async function DashboardPage() {
       stats.paymentStatus[r.payment_status] = (stats.paymentStatus[r.payment_status] ?? 0) + 1;
       if (r.payment_status === "已完成") stats.amountCollected += r.payment_amount;
       if (r.payment_status === "待繳費") stats.amountOwed += r.payment_amount;
+    }
+
+    if (isNoticeEligible(r)) {
+      stats.noticeExpected += 1;
+      if (r.notice_replied_at) stats.noticeReplied += 1;
     }
   }
 
@@ -327,6 +337,29 @@ export default async function DashboardPage() {
                           />
                         </div>
                         <div className="text-muted-foreground mt-1 text-xs">{collectedPct}% 已收齊</div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <p className="text-muted-foreground mb-1.5">行前通知回覆（正取且已繳費／免繳費）</p>
+                  {(() => {
+                    const pct =
+                      stats.noticeExpected > 0 ? Math.round((stats.noticeReplied / stats.noticeExpected) * 100) : 0;
+                    return (
+                      <div className="rounded-lg border p-2 text-center">
+                        <div className="font-mono">
+                          <span className="text-lg font-semibold">{stats.noticeReplied}</span>
+                          <span className="text-muted-foreground text-sm"> / {stats.noticeExpected} 組</span>
+                        </div>
+                        <div className="text-muted-foreground text-xs">已回覆 / 應回覆</div>
+                        <div className="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
+                          <div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="text-muted-foreground mt-1 text-xs">
+                          {pct}% 已回覆・未回覆 {stats.noticeExpected - stats.noticeReplied} 組
+                        </div>
                       </div>
                     );
                   })()}

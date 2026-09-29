@@ -46,6 +46,20 @@ export function sampleNoticeReply(token: string): NoticeReplyData | null {
   };
 }
 
+// Who the 行前通知 goes to, and so who is expected to reply — mirrors the eligibility
+// check in fn_get_notice_reply / fn_submit_notice_reply.
+export function isNoticeEligible(r: {
+  is_cancelled: boolean;
+  admission_status: string;
+  payment_status: string;
+}): boolean {
+  return (
+    !r.is_cancelled &&
+    r.admission_status === "正取" &&
+    (r.payment_status === "已完成" || r.payment_status === "無需繳費")
+  );
+}
+
 export function noticeReplyUrl(siteUrl: string, token: string): string {
   return `${siteUrl}/notice/${token}`;
 }

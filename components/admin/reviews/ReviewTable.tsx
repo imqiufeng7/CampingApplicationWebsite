@@ -47,6 +47,7 @@ import { updateRegistrationField, type RegistrationEditableField } from "@/app/a
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { isNoticeEligible } from "@/lib/noticeReply";
 import { createClient } from "@/lib/supabase/client";
 import type { FieldPermissions } from "@/lib/auth/permissions";
 
@@ -92,6 +93,8 @@ export type ReviewRow = {
   payment_amount: number;
   payment_method: string | null;
   ecpay_payment_type: string | null;
+  notice_replied_at: string | null;
+  notice_plate_number: string | null;
   admin_note: string | null;
   is_cancelled: boolean;
   cancel_reason: string | null;
@@ -181,6 +184,7 @@ export function ReviewTable({
   identityTypeMap,
   feeCategoryMap,
   registrationCategoryMap,
+  freeCategoryIds,
   fieldPermissions,
   isVendor,
   initialSortIds,
@@ -193,6 +197,7 @@ export function ReviewTable({
   identityTypeMap: Map<string, string>;
   feeCategoryMap: Map<string, string>;
   registrationCategoryMap: Map<string, string>;
+  freeCategoryIds: Set<string>;
   fieldPermissions: FieldPermissions;
   isVendor: boolean;
   initialSortIds: string[];
@@ -210,6 +215,7 @@ export function ReviewTable({
   const [admissionFilter, setAdmissionFilter] = useState("");
   const [cancelledFilter, setCancelledFilter] = useState("");
   const [duplicateFilter, setDuplicateFilter] = useState("");
+  const [noticeFilter, setNoticeFilter] = useState("");
   // Lifted out of the per-row "證明文件" cell — one dialog instance at the table
   // level, driven by which registration is selected, rather than each row owning its
   // own <Dialog>. A row-nested dialog would tear down (along with its open state)
@@ -315,6 +321,8 @@ export function ReviewTable({
         if (cancelledFilter === "active" && r.is_cancelled) return false;
         if (duplicateFilter === "duplicate" && !r.duplicate_flag) return false;
         if (duplicateFilter === "not_duplicate" && r.duplicate_flag) return false;
+        if (noticeFilter === "replied" && !r.notice_replied_at) return false;
+        if (noticeFilter === "not_replied" && (!isNoticeEligible(r) || r.notice_replied_at)) return false;
         if (!term) return true;
         if (activeIdNumberHash && r.members.some((m) => m.id_number_hash === activeIdNumberHash)) {
           return true;
@@ -339,6 +347,7 @@ export function ReviewTable({
     admissionFilter,
     cancelledFilter,
     duplicateFilter,
+    noticeFilter,
     orderIndex,
   ]);
 
@@ -676,6 +685,45 @@ export function ReviewTable({
         ),
       });
 
+      // 行前通知 reply — only 正取 + settled payment are asked to reply (isNoticeEligible),
+      // so everyone else shows "-" rather than a misleading 未回覆.
+      cols.push({
+        id: "notice_reply",
+        header: "行前通知回覆",
+        accessorFn: (r) => r.notice_replied_at ?? "",
+        cell: ({ row }) => {
+          const r = row.original;
+          if (r.notice_replied_at) {
+            return (
+              <div>
+                <Badge variant="secondary" className="bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-200">
+                  ✓ 已回覆
+                </Badge>
+                <div className="text-muted-foreground mt-0.5 text-xs whitespace-nowrap">
+                  {new Date(r.notice_replied_at).toLocaleString("zh-TW", {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                    timeZone: TAIPEI_TIME_ZONE,
+                  })}
+                </div>
+                {r.notice_plate_number && (
+                  <div className="mt-0.5 font-mono text-xs">🚗 {r.notice_plate_number}</div>
+                )}
+              </div>
+            );
+          }
+          if (!isNoticeEligible(r)) return <span className="text-muted-foreground">-</span>;
+          return (
+            <Badge variant="secondary" className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+              未回覆
+            </Badge>
+          );
+        },
+      });
+
       if (canViewDocuments) {
         cols.push({
           id: "documents",
@@ -894,6 +942,15 @@ export function ReviewTable({
           <option value="duplicate">只看疑似重複</option>
           <option value="not_duplicate">不含疑似重複</option>
         </select>
+        <select
+          value={noticeFilter}
+          onChange={(e) => setNoticeFilter(e.target.value)}
+          className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
+        >
+          <option value="">全部行前通知回覆</option>
+          <option value="replied">已回覆</option>
+          <option value="not_replied">未回覆（應回覆者）</option>
+        </select>
 
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" />}>
@@ -921,6 +978,7 @@ export function ReviewTable({
           <ExportMenu
             rows={filtered}
             registrationCategoryMap={registrationCategoryMap}
+            freeCategoryIds={freeCategoryIds}
             sessionName={sessionName}
             sessionDateStart={sessionDateStart}
             sessionDateEnd={sessionDateEnd}

@@ -13,6 +13,7 @@ import { RichContent } from "@/components/public-form/RichContent";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { sortRegistrationsForReview } from "@/lib/reviewSort";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { isNoticeEligible } from "@/lib/noticeReply";
 
 export default async function RegistrationDetailPage({
   params,
@@ -236,6 +237,38 @@ export default async function RegistrationDetailPage({
           />
         </CardContent>
       </Card>
+
+      {!paymentOnly && (registration.notice_replied_at || isNoticeEligible(registration)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>行前通知回覆</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-1 text-sm">
+            {registration.notice_replied_at ? (
+              <>
+                <p>
+                  <span className="font-medium text-green-700 dark:text-green-400">✓ 已回覆確認出席</span>
+                  <span className="text-muted-foreground ml-2">
+                    {new Date(registration.notice_replied_at).toLocaleString("zh-TW", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                      hour12: false,
+                      timeZone: TAIPEI_TIME_ZONE,
+                    })}
+                  </span>
+                </p>
+                {registration.notice_plate_number && (
+                  <p>
+                    車牌號碼：<span className="font-mono font-medium">{registration.notice_plate_number}</span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-amber-700 dark:text-amber-400">尚未回覆</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {(emailLogs ?? []).length > 0 && (
         <Card>

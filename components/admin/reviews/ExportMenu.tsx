@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
 import { paymentMethodDisplay } from "@/lib/ecpay/paymentType";
+import { isNoticeEligible } from "@/lib/noticeReply";
+import { formatTentNo } from "@/lib/email/templates/preEventNotice";
 import { buildRosterRows, buildRosterTitle, ROSTER_HEADERS } from "@/lib/admittedRoster";
 import type { ReviewRow } from "@/components/admin/reviews/ReviewTable";
 
@@ -37,6 +39,19 @@ function toCsv(headers: string[], rows: (string | number | ExcelText)[][]): stri
   const lines = [headers, ...rows].map((row) => row.map(escape).join(","));
   // Leading BOM so Excel on Windows renders UTF-8 Chinese text correctly.
   return "﻿" + lines.join("\r\n");
+}
+
+function formatTaipei(iso: string): string {
+  return new Date(iso).toLocaleString("zh-TW", { hour12: false, timeZone: TAIPEI_TIME_ZONE });
+}
+
+function noticeReplyLabel(r: ReviewRow): string {
+  if (r.notice_replied_at) return "已回覆";
+  return isNoticeEligible(r) ? "未回覆" : "";
+}
+
+function tentNoOf(r: ReviewRow): string {
+  return formatTentNo(r.group_zone, r.group_number);
 }
 
 function downloadCsv(filename: string, csv: string) {
@@ -119,12 +134,14 @@ async function downloadRosterXlsx(filename: string, title: string, headers: stri
 export function ExportMenu({
   rows,
   registrationCategoryMap,
+  freeCategoryIds,
   sessionName,
   sessionDateStart,
   sessionDateEnd,
 }: {
   rows: ReviewRow[];
   registrationCategoryMap: Map<string, string>;
+  freeCategoryIds: Set<string>;
   sessionName: string;
   sessionDateStart: string | null;
   sessionDateEnd: string | null;
@@ -137,7 +154,8 @@ export function ExportMenu({
     const headers = [
       "編號", "報名時間", "聯絡Email", "聯絡電話", "報名類別", "成員", "人數",
       "審核結果", "錄取結果", "分組區域", "分組編號", "福慧床借用",
-      "繳費狀態", "應繳金額", "付款方式", "是否取消", "取消原因", "備註",
+      "繳費狀態", "應繳金額", "付款方式", "是否取消", "取消原因",
+      "行前通知回覆", "回覆時間", "車牌號碼", "備註",
     ];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
@@ -157,9 +175,32 @@ export function ExportMenu({
       paymentMethodDisplay(r.payment_method, r.ecpay_payment_type),
       r.is_cancelled ? "是" : "否",
       r.cancel_reason ?? "",
+      noticeReplyLabel(r),
+      r.notice_replied_at ? formatTaipei(r.notice_replied_at) : "",
+      excelText(r.notice_plate_number ?? ""),
       r.admin_note ?? "",
     ]);
     downloadCsv("完整報名資料.csv", toCsv(headers, data));
+  }
+
+  // For the 公所 arranging vehicle entry: every 自搭帳 group expected to show up,
+  // whether or not they've replied yet, so the gaps are visible.
+  function exportPlates() {
+    const selfPitch = rows
+      .filter((r) => isNoticeEligible(r) && r.registration_category_id && freeCategoryIds.has(r.registration_category_id))
+      .sort((a, b) => tentNoOf(a).localeCompare(tentNoOf(b), "en", { numeric: true }));
+    const headers = ["帳篷編號", "報名編號", "主要報名者", "人數", "車牌號碼", "回覆狀態", "回覆時間", "電話"];
+    const data = selfPitch.map((r) => [
+      excelText(tentNoOf(r)),
+      formatRegistrationNo(r.registration_seq),
+      r.memberNames[0] ?? "",
+      r.memberNames.length,
+      excelText(r.notice_plate_number ?? ""),
+      noticeReplyLabel(r),
+      r.notice_replied_at ? formatTaipei(r.notice_replied_at) : "",
+      excelText(r.contact_phone),
+    ]);
+    downloadCsv(`${sessionName}自搭帳車牌清單.csv`, toCsv(headers, data));
   }
 
   function exportReceipt() {
@@ -210,6 +251,9 @@ export function ExportMenu({
         <DropdownMenuItem onClick={exportReceipt}>收據開立用資料</DropdownMenuItem>
         <DropdownMenuItem onClick={exportCheckin}>報到使用資料</DropdownMenuItem>
         <DropdownMenuItem onClick={exportAdmitted}>錄取名單</DropdownMenuItem>
+        {freeCategoryIds.size > 0 && (
+          <DropdownMenuItem onClick={exportPlates}>自搭帳車牌清單</DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
