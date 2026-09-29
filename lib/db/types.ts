@@ -70,6 +70,7 @@ export interface Database {
           fee_discount_per_person: number;
           max_members_per_registration: number;
           min_members_per_registration: number;
+          office_contact: string | null;
           managing_org: string | null;
           status: EventSessionStatus;
           banner_image_path: string | null;
@@ -229,6 +230,9 @@ export interface Database {
           checkin_at: string | null;
           checkin_by: string | null;
           qr_token: string;
+          notice_token: string;
+          notice_replied_at: string | null;
+          notice_plate_number: string | null;
           registration_seq: number;
           edit_token: string;
           admin_note: string | null;
@@ -485,6 +489,14 @@ export interface Database {
       fn_get_registration_for_edit: {
         Args: { p_token: string };
         Returns: Record<string, unknown> | null;
+      };
+      fn_get_notice_reply: {
+        Args: { p_token: string };
+        Returns: Record<string, unknown> | null;
+      };
+      fn_submit_notice_reply: {
+        Args: { p_token: string; p_plate_number: string | null };
+        Returns: string;
       };
       fn_update_registration_via_token: {
         Args: { p_token: string; payload: Record<string, unknown> };
