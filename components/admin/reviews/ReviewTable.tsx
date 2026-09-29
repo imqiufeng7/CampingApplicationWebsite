@@ -43,6 +43,7 @@ import { MemberDocumentsDialog } from "@/components/admin/reviews/MemberDocument
 import { ExportMenu } from "@/components/admin/reviews/ExportMenu";
 import { DeleteRegistrationButton } from "@/components/admin/reviews/DeleteRegistrationButton";
 import { SendSelectedResultsDialog } from "@/components/admin/reviews/SendSelectedResultsDialog";
+import { SendSelectedNoticeDialog } from "@/components/admin/SendPreEventNoticeDialog";
 import { updateRegistrationField, type RegistrationEditableField } from "@/app/admin/(protected)/reviews/[sessionId]/actions";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { cn } from "@/lib/utils";
@@ -95,6 +96,7 @@ export type ReviewRow = {
   ecpay_payment_type: string | null;
   notice_replied_at: string | null;
   notice_plate_number: string | null;
+  notice_sent_at: string | null;
   admin_note: string | null;
   is_cancelled: boolean;
   cancel_reason: string | null;
@@ -323,6 +325,7 @@ export function ReviewTable({
         if (duplicateFilter === "not_duplicate" && r.duplicate_flag) return false;
         if (noticeFilter === "replied" && !r.notice_replied_at) return false;
         if (noticeFilter === "not_replied" && (!isNoticeEligible(r) || r.notice_replied_at)) return false;
+        if (noticeFilter === "not_sent" && (!isNoticeEligible(r) || r.notice_sent_at)) return false;
         if (!term) return true;
         if (activeIdNumberHash && r.members.some((m) => m.id_number_hash === activeIdNumberHash)) {
           return true;
@@ -716,10 +719,30 @@ export function ReviewTable({
             );
           }
           if (!isNoticeEligible(r)) return <span className="text-muted-foreground">-</span>;
+          if (!r.notice_sent_at) {
+            return (
+              <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                未寄送
+              </Badge>
+            );
+          }
           return (
-            <Badge variant="secondary" className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
-              未回覆
-            </Badge>
+            <div>
+              <Badge variant="secondary" className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+                未回覆
+              </Badge>
+              <div className="text-muted-foreground mt-0.5 text-xs whitespace-nowrap">
+                已寄{" "}
+                {new Date(r.notice_sent_at).toLocaleString("zh-TW", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                  timeZone: TAIPEI_TIME_ZONE,
+                })}
+              </div>
+            </div>
           );
         },
       });
@@ -950,6 +973,7 @@ export function ReviewTable({
           <option value="">全部行前通知回覆</option>
           <option value="replied">已回覆</option>
           <option value="not_replied">未回覆（應回覆者）</option>
+          <option value="not_sent">尚未寄送（應寄送者）</option>
         </select>
 
         <DropdownMenu>
@@ -986,6 +1010,7 @@ export function ReviewTable({
         </div>
 
         {canEditAdmission && <SendSelectedResultsDialog sessionId={sessionId} registrationIds={selectedIds} />}
+        {canEditAdmission && <SendSelectedNoticeDialog sessionId={sessionId} registrationIds={selectedIds} />}
 
         <span className="text-muted-foreground text-xs">
           點擊欄位標題排序；按住 Shift 點擊可依序加入多層排序

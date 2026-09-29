@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<EmailType, string> = {
   報到QR: "報到 QR",
   遞補通知: "遞補通知",
   管理員邀請: "管理員邀請信（新增管理員帳號或重寄邀請時寄出）",
+  行前通知: "行前通知／報到通知書（後台「寄送行前通知」批次寄出，內容固定依範本）",
 };
 
 const PLACEHOLDERS: Partial<Record<EmailType, string[]>> = {

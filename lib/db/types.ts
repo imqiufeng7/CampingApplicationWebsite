@@ -28,7 +28,8 @@ export type EmailType =
   | "報名確認"
   | "退回補件"
   | "開放修改"
-  | "管理員邀請";
+  | "管理員邀請"
+  | "行前通知";
 export type EmailStatus = "pending" | "sent" | "failed";
 
 export interface Database {

@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireSessionAccess } from "@/lib/auth/guards";
 import { Card, CardContent } from "@/components/ui/card";
 import { SendResultsDialog } from "@/components/admin/SendResultsDialog";
+import { SendPreEventNoticeDialog } from "@/components/admin/SendPreEventNoticeDialog";
+import { isNoticeEligible } from "@/lib/noticeReply";
 import { sortRegistrationsForReview } from "@/lib/reviewSort";
 import { ReviewTable, type ReviewRow } from "@/components/admin/reviews/ReviewTable";
 import { OnboardingTour } from "@/components/admin/OnboardingTour";
@@ -36,7 +38,7 @@ export default async function ReviewListPage({
     .eq("session_id", sessionId);
 
   const registrationIds = (registrations ?? []).map((r) => r.id);
-  const [{ data: members }, { data: files }] = await Promise.all([
+  const [{ data: members }, { data: files }, { data: noticeLogs }] = await Promise.all([
     registrationIds.length
       ? supabase
           .from("registration_members")
@@ -52,7 +54,23 @@ export default async function ReviewListPage({
           .select("id, member_id, file_type, storage_path, registration_id")
           .in("registration_id", registrationIds)
       : Promise.resolve({ data: [] }),
+    registrationIds.length
+      ? supabase
+          .from("email_logs")
+          .select("registration_id, sent_at")
+          .eq("type", "行前通知")
+          .eq("status", "sent")
+          .in("registration_id", registrationIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  // Latest successful 行前通知 per registration.
+  const noticeSentAt = new Map<string, string>();
+  for (const l of noticeLogs ?? []) {
+    if (!l.sent_at) continue;
+    const prev = noticeSentAt.get(l.registration_id);
+    if (!prev || l.sent_at > prev) noticeSentAt.set(l.registration_id, l.sent_at);
+  }
 
   const membersByRegistration = new Map<string, typeof members>();
   for (const m of members ?? []) {
@@ -160,7 +178,18 @@ export default async function ReviewListPage({
     members: membersByRegistration.get(r.id) ?? [],
     files: filesByRegistration.get(r.id) ?? [],
     duplicateMatches: dupMatchesByRegistration.get(r.id) ?? [],
+    notice_sent_at: noticeSentAt.get(r.id) ?? null,
   }));
+
+  const noticeRows = rows.filter(isNoticeEligible);
+  const noticeStats = {
+    selfPitch: noticeRows.filter((r) => r.registration_category_id && freeCategoryIds.has(r.registration_category_id))
+      .length,
+    total: noticeRows.length,
+    missingTent: noticeRows.filter((r) => !r.group_zone || !r.group_number).length,
+    alreadySent: noticeRows.filter((r) => r.notice_sent_at).length,
+    pendingIds: noticeRows.filter((r) => !r.notice_sent_at).map((r) => r.id),
+  };
 
   const canSendResults = admin.fieldPermissions["錄取分組結果"] === "editable";
 
@@ -170,12 +199,20 @@ export default async function ReviewListPage({
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{session?.name} — 審核列表</h1>
         {canSendResults && (
-          <div data-tour="review-send-results">
-            <SendResultsDialog
+          <div className="flex gap-2">
+            <SendPreEventNoticeDialog
               sessionId={sessionId}
-              admittedCount={admittedCount}
-              waitlistCount={waitlistCount}
+              sessionName={session?.name ?? ""}
+              stats={noticeStats}
+              defaultTestEmail={admin.email}
             />
+            <div data-tour="review-send-results">
+              <SendResultsDialog
+                sessionId={sessionId}
+                admittedCount={admittedCount}
+                waitlistCount={waitlistCount}
+              />
+            </div>
           </div>
         )}
       </div>
