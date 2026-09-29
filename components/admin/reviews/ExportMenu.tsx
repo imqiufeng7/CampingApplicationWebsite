@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { paymentMethodDisplay } from "@/lib/ecpay/paymentType";
 import { buildRosterRows, buildRosterTitle, ROSTER_HEADERS } from "@/lib/admittedRoster";
 import type { ReviewRow } from "@/components/admin/reviews/ReviewTable";
 
@@ -136,7 +137,7 @@ export function ExportMenu({
     const headers = [
       "編號", "報名時間", "聯絡Email", "聯絡電話", "報名類別", "成員", "人數",
       "審核結果", "錄取結果", "分組區域", "分組編號", "福慧床借用",
-      "繳費狀態", "應繳金額", "是否取消", "取消原因", "備註",
+      "繳費狀態", "應繳金額", "付款方式", "是否取消", "取消原因", "備註",
     ];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
@@ -153,6 +154,7 @@ export function ExportMenu({
       r.comfort_bed_needed,
       r.payment_status,
       r.payment_amount,
+      paymentMethodDisplay(r.payment_method, r.ecpay_payment_type),
       r.is_cancelled ? "是" : "否",
       r.cancel_reason ?? "",
       r.admin_note ?? "",
@@ -161,11 +163,12 @@ export function ExportMenu({
   }
 
   function exportReceipt() {
-    const headers = ["編號", "主要聯絡人姓名", "付款金額", "電話"];
+    const headers = ["編號", "主要聯絡人姓名", "付款金額", "付款方式", "電話"];
     const data = rows.map((r) => [
       formatRegistrationNo(r.registration_seq),
       r.memberNames[0] ?? "",
       r.payment_amount,
+      paymentMethodDisplay(r.payment_method, r.ecpay_payment_type),
       excelText(r.contact_phone),
     ]);
     downloadCsv("收據開立用資料.csv", toCsv(headers, data));

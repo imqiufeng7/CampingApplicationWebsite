@@ -90,6 +90,8 @@ export type ReviewRow = {
   sleeping_bag_rent_qty: number;
   payment_status: string;
   payment_amount: number;
+  payment_method: string | null;
+  ecpay_payment_type: string | null;
   admin_note: string | null;
   is_cancelled: boolean;
   cancel_reason: string | null;

@@ -211,6 +211,7 @@ export interface Database {
           ecpay_trade_no: string | null;
           ecpay_link: string | null;
           ecpay_merchant_trade_no: string | null;
+          ecpay_payment_type: string | null;
           manual_transfer_last5: string | null;
           manual_transfer_note: string | null;
           group_zone: string | null;
@@ -255,6 +256,7 @@ export interface Database {
             | "ecpay_trade_no"
             | "ecpay_link"
             | "ecpay_merchant_trade_no"
+            | "ecpay_payment_type"
             | "manual_transfer_last5"
             | "manual_transfer_note"
             | "group_zone"
@@ -378,6 +380,27 @@ export interface Database {
           field_group: FieldGroup;
         };
         Update: Partial<Database["public"]["Tables"]["field_permission_matrix"]["Insert"]>;
+        Relationships: [];
+      };
+      ecpay_orders: {
+        Row: {
+          merchant_trade_no: string;
+          registration_id: string;
+          amount: number;
+          created_at: string;
+          rtn_code: string | null;
+          payment_type: string | null;
+          trade_no: string | null;
+          paid_at: string | null;
+          notified_at: string | null;
+        };
+        // Service-role only (checkout route + ECPay webhook) — RLS has no policies.
+        Insert: Partial<Omit<Database["public"]["Tables"]["ecpay_orders"]["Row"], "created_at">> & {
+          merchant_trade_no: string;
+          registration_id: string;
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["ecpay_orders"]["Insert"]>;
         Relationships: [];
       };
       email_logs: {

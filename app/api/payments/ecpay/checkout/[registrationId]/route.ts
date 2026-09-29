@@ -63,8 +63,20 @@ export async function GET(
   const merchantTradeNo = buildMerchantTradeNo(registration.id);
 
   // Persisted so the webhook (which only receives MerchantTradeNo back, not our uuid)
-  // can look this registration back up — see the column comment in
-  // supabase/migrations/*_init_schema.sql.
+  // can look this registration back up. Every issued number goes into ecpay_orders —
+  // an ATM/超商 payer can settle an earlier number after this link mints a newer one —
+  // and the column keeps just the latest for display.
+  const { error: orderError } = await admin.from("ecpay_orders").insert({
+    merchant_trade_no: merchantTradeNo,
+    registration_id: registration.id,
+    amount: registration.payment_amount,
+  });
+  if (orderError) {
+    return new Response("建立付款訂單失敗，請稍後再試。", {
+      status: 500,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
   await admin
     .from("registrations")
     .update({ ecpay_merchant_trade_no: merchantTradeNo })

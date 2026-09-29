@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { isoToTaipeiInputValue, TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { ecpayPaymentTypeLabel } from "@/lib/ecpay/paymentType";
 import type { Database } from "@/lib/db/types";
 
 const initialState: ActionState = { error: null };
@@ -135,9 +136,15 @@ export function PaymentPanel({
             className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           >
             <option value="">（未設定）</option>
-            <option value="online">線上刷卡/ATM（綠界）</option>
+            <option value="online">綠界線上付款（信用卡／ATM／超商）</option>
             <option value="manual">人工轉帳</option>
           </select>
+          {registration.ecpay_payment_type && (
+            <p className="text-muted-foreground text-xs">
+              實際付款方式：{ecpayPaymentTypeLabel(registration.ecpay_payment_type)}
+              {registration.ecpay_trade_no && `（綠界交易編號 ${registration.ecpay_trade_no}）`}
+            </p>
+          )}
         </div>
         <div className="grid gap-2">
           <Label htmlFor="manual_transfer_last5">轉帳帳號後五碼</Label>

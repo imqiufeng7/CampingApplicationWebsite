@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRegistrationNo } from "@/lib/registrationNo";
 import { TAIPEI_TIME_ZONE } from "@/lib/timezone";
+import { paymentMethodDisplay } from "@/lib/ecpay/paymentType";
 import {
   Table,
   TableBody,
@@ -36,7 +37,7 @@ export default async function PaymentListPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, paid_after_deadline, manual_transfer_last5, ecpay_trade_no, is_cancelled"
+      "id, registration_seq, contact_email, contact_phone, payment_status, payment_amount, payment_method, payment_deadline, paid_after_deadline, manual_transfer_last5, ecpay_trade_no, ecpay_payment_type, is_cancelled"
     )
     .eq("session_id", sessionId)
     .eq("admission_status", "正取")
@@ -57,9 +58,6 @@ export default async function PaymentListPage({
     list.push(m.name);
     membersByRegistration.set(m.registration_id, list);
   }
-
-  const paymentMethodLabel = (method: string | null) =>
-    method === "online" ? "線上刷卡/ATM" : method === "manual" ? "人工轉帳" : "-";
 
   const paymentStatusClass = (status: string, cancelled: boolean) =>
     cancelled
@@ -122,7 +120,7 @@ export default async function PaymentListPage({
                     )}
                   </TableCell>
                   <TableCell>{r.payment_amount}</TableCell>
-                  <TableCell>{paymentMethodLabel(r.payment_method)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{paymentMethodDisplay(r.payment_method, r.ecpay_payment_type)}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     {r.payment_deadline ? (
                       <>
