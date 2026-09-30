@@ -66,7 +66,9 @@ export async function POST(request: Request) {
 
   let query = admin
     .from("registrations")
-    .select("id, contact_email, registration_category_id, group_zone, group_number, notice_token")
+    .select(
+      "id, contact_email, registration_category_id, group_zone, group_number, notice_token, sleeping_bag_own_qty, sleeping_bag_rent_qty, comfort_bed_needed"
+    )
     .eq("session_id", sessionId)
     .eq("is_cancelled", false)
     .eq("admission_status", "正取")
@@ -97,6 +99,9 @@ export async function POST(request: Request) {
       dateEnd: session!.date_end!,
       tentNo: formatTentNo(r.group_zone, r.group_number),
       memberCount: members?.length ?? 0,
+      sleepingBagOwn: r.sleeping_bag_own_qty,
+      sleepingBagProvided: r.sleeping_bag_rent_qty,
+      comfortBedRequested: r.comfort_bed_needed === "需要",
       officeContact: session!.office_contact!,
       replyUrl,
     };

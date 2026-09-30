@@ -15,6 +15,9 @@ const base: PreEventNoticeInput = {
   dateEnd: "2026-10-18",
   tentNo: "A01",
   memberCount: 4,
+  sleepingBagOwn: 1,
+  sleepingBagProvided: 3,
+  comfortBedRequested: true,
   officeContact: "溪湖鎮公所",
   replyUrl: "https://example.test/notice/x",
 };
@@ -50,5 +53,21 @@ describe("buildPreEventNoticeBody", () => {
 
   it("escapes registrant-supplied names", () => {
     expect(buildPreEventNoticeBody({ ...base, leaderName: "<b>x</b>" })).toContain("&lt;b&gt;x&lt;/b&gt;");
+  });
+});
+
+describe("gear rows", () => {
+  it("shows sleeping bag split and 福慧床 status with a reminder", () => {
+    const html = buildPreEventNoticeBody(base);
+    expect(html).toContain("自備 1 份／機關提供 3 份");
+    expect(html).toContain("已申請借用");
+    expect(html).toContain("請記得自行攜帶");
+    expect(html).toContain("攜帶證件抵押領取");
+  });
+
+  it("says 未申請 and skips the pickup line when nothing is borrowed", () => {
+    const html = buildPreEventNoticeBody({ ...base, sleepingBagOwn: 4, sleepingBagProvided: 0, comfortBedRequested: false });
+    expect(html).toContain("未申請");
+    expect(html).not.toContain("借用物資請於報到時");
   });
 });

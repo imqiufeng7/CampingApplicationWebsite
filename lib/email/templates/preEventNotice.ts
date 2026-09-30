@@ -12,6 +12,11 @@ export interface PreEventNoticeInput {
   dateEnd: string; // YYYY-MM-DD
   tentNo: string;
   memberCount: number;
+  // registrations.sleeping_bag_own_qty / sleeping_bag_rent_qty (rent = 機關提供)
+  sleepingBagOwn: number;
+  sleepingBagProvided: number;
+  // registrations.comfort_bed_needed === "需要"
+  comfortBedRequested: boolean;
   officeContact: string;
   replyUrl: string;
 }
@@ -74,6 +79,8 @@ export function buildPreEventNoticeBody(input: PreEventNoticeInput): string {
     ["主要報名者", name],
     ["帳篷編號", tentNo],
     ["參加人數", `${input.memberCount}人`],
+    ["睡袋(墊)", `自備 ${input.sleepingBagOwn} 份／機關提供 ${input.sleepingBagProvided} 份`],
+    ["福慧床借用", input.comfortBedRequested ? "已申請借用" : "未申請"],
   ];
   // Red, like the original template's 「(請回填)」.
   if (input.selfPitch)
@@ -90,6 +97,18 @@ ${rows.map(([k, v]) => `<tr><td style="${TH}">${k}</td><td style="${TD}">${v}</t
   const selfPitchPosition = input.selfPitch
     ? `<p style="${P}">搭設位置：由承辦單位規劃，提供約4米×4米場地，請依規定之進退場時間完成搭帳作業。</p>`
     : "";
+
+  const gearReminder = [
+    input.sleepingBagOwn > 0 ? `自備睡袋(墊) ${input.sleepingBagOwn} 份，請記得自行攜帶` : null,
+    input.sleepingBagProvided > 0 ? `機關提供睡袋(墊) ${input.sleepingBagProvided} 份` : null,
+    input.comfortBedRequested ? "已申請借用福慧床" : null,
+  ].filter(Boolean);
+  const gearNote =
+    gearReminder.length > 0
+      ? `<p style="${P}"><strong>★物資提醒：本帳${gearReminder.join("；")}。${
+          input.sleepingBagProvided > 0 || input.comfortBedRequested ? "借用物資請於報到時攜帶證件抵押領取。" : ""
+        }如與實際需求不符，請於活動前電洽公所。</strong></p>`
+      : "";
 
   const replyAsk = input.selfPitch
     ? "★為確認您的報名資格，收到本通知後，請點選下方「回覆確認」按鈕確認出席，並填寫車牌號碼，以利公所安排。"
@@ -119,6 +138,7 @@ ${selfPitchVehicle}
 <p style="${P}">退場時間：${formatDayWithWeekday(input.dateEnd)}上午10時前。</p>
 ${selfPitchPosition}
 ${table}
+${gearNote}
 <p style="${P}"><strong>${replyAsk}</strong></p>
 <p style="${P}"><strong>★活動注意事項、流程及各式公告可至「彰化縣防災資訊網－防災教育日系列活動專區」查詢（網址：<a href="https://changhuadp.com/" style="color:#0000ff;text-decoration:underline;">https://changhuadp.com/</a>）。</strong></p>
 <p style="${P}margin-bottom:8px;"><strong>★為使民眾參與沉浸式避難收容安置體驗，相關規劃請配合辦理：</strong></p>
