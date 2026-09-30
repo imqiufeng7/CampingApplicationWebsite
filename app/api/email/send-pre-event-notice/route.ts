@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const [{ data: session }, { data: categories }] = await Promise.all([
     admin
       .from("event_sessions")
-      .select("name, location, date_start, date_end, theme_color, office_contact")
+      .select("name, location, date_start, date_end, theme_color, office_contact, unload_entrance")
       .eq("id", sessionId)
       .maybeSingle(),
     admin.from("session_registration_categories").select("id, is_free").eq("session_id", sessionId),
@@ -103,6 +103,7 @@ export async function POST(request: Request) {
       sleepingBagProvided: r.sleeping_bag_rent_qty,
       comfortBedRequested: r.comfort_bed_needed === "需要",
       officeContact: session!.office_contact!,
+      unloadEntrance: session!.unload_entrance,
       replyUrl,
     };
   }

@@ -72,6 +72,7 @@ export interface Database {
           max_members_per_registration: number;
           min_members_per_registration: number;
           office_contact: string | null;
+          unload_entrance: string | null;
           managing_org: string | null;
           status: EventSessionStatus;
           banner_image_path: string | null;

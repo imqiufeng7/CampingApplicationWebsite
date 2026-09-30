@@ -18,6 +18,8 @@ export interface PreEventNoticeInput {
   // registrations.comfort_bed_needed === "需要"
   comfortBedRequested: boolean;
   officeContact: string;
+  // event_sessions.unload_entrance — where 自搭帳 vehicles unload (e.g. 大成路一段)
+  unloadEntrance: string | null;
   replyUrl: string;
 }
 
@@ -92,8 +94,12 @@ ${rows.map(([k, v]) => `<tr><td style="${TH}">${k}</td><td style="${TD}">${v}</t
 
   // Bold / underline below mirrors the vendor's 行前通知（範本）.docx emphasis.
   const selfPitchVehicle = input.selfPitch
-    ? `<p style="${P}"><strong>★</strong>為確保場地秩序與安全，自搭帳車輛僅限於報到時間進入場地卸下帳篷裝備，卸貨完成後請立即將車輛駛離場地，停放至鄰近周邊之停車格或停車場。</p>`
+    ? `<p style="${P}"><strong>★</strong>為確保場地秩序與安全，自搭帳車輛僅限於報到時間於活動入口處${
+        input.unloadEntrance ? `(${escapeHtml(input.unloadEntrance)})` : ""
+      }卸下帳篷裝備，卸貨完成後請將車輛駛離，停放至鄰近周邊之停車格或停車場。</p>`
     : "";
+  // 主辦搭設帳 has to clear out earlier so the organizer can take its tents down.
+  const checkOutTime = input.selfPitch ? "上午10時前" : "上午8時";
   const selfPitchPosition = input.selfPitch
     ? `<p style="${P}">搭設位置：由承辦單位規劃，提供約4米×4米場地，請依規定之進退場時間完成搭帳作業。</p>`
     : "";
@@ -135,7 +141,7 @@ ${rows.map(([k, v]) => `<tr><td style="${TH}">${k}</td><td style="${TD}">${v}</t
 <p style="${P}">活動地點：${escapeHtml(input.location)}。</p>
 <p style="${P}">報到時間：${formatDayWithWeekday(input.dateStart)}${checkInTime}。</p>
 ${selfPitchVehicle}
-<p style="${P}">退場時間：${formatDayWithWeekday(input.dateEnd)}上午10時前。</p>
+<p style="${P}">退場時間：${formatDayWithWeekday(input.dateEnd)}${checkOutTime}。</p>
 ${selfPitchPosition}
 ${table}
 ${gearNote}

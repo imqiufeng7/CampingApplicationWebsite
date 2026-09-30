@@ -19,6 +19,7 @@ const base: PreEventNoticeInput = {
   sleepingBagProvided: 3,
   comfortBedRequested: true,
   officeContact: "溪湖鎮公所",
+  unloadEntrance: "大成路一段",
   replyUrl: "https://example.test/notice/x",
 };
 
@@ -41,12 +42,14 @@ describe("buildPreEventNoticeBody", () => {
     const html = buildPreEventNoticeBody(base);
     expect(html).toContain("下午4時至4時30分");
     expect(html).toContain("車牌號碼");
-    expect(html).toContain("卸貨完成後請立即將車輛駛離場地");
+    expect(html).toContain("活動入口處(大成路一段)卸下帳篷裝備");
+    expect(html).toContain("上午10時前");
   });
 
   it("主辦搭設帳 has no plate row and the later check-in slot", () => {
     const html = buildPreEventNoticeBody({ ...base, selfPitch: false });
     expect(html).toContain("下午4時30分至5時");
+    expect(html).toContain("上午8時。");
     expect(html).not.toContain("車牌號碼");
     expect(html).not.toContain("卸貨");
   });
