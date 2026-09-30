@@ -77,16 +77,45 @@ export default async function DashboardPage() {
   const { data: members } = registrationIds.length
     ? await supabase
         .from("registration_members")
-        .select("registration_id")
+        .select("registration_id, meal_diet")
         .in("registration_id", registrationIds)
     : { data: [] };
 
   const memberCountByRegistration = new Map<string, number>();
+  const dietByRegistration = new Map<string, { meat: number; veg: number }>();
   for (const m of members ?? []) {
     memberCountByRegistration.set(
       m.registration_id,
       (memberCountByRegistration.get(m.registration_id) ?? 0) + 1
     );
+    const d = dietByRegistration.get(m.registration_id) ?? { meat: 0, veg: 0 };
+    if (m.meal_diet === "素") d.veg += 1;
+    else d.meat += 1;
+    dietByRegistration.set(m.registration_id, d);
+  }
+
+  // 葷/素 portions, shown as 正取且非未繳費 / 全部正取 — the first is what's certain to
+  // show up and eat, the second is the ceiling if every 待繳費 group still pays.
+  type DietStats = { meatPaid: number; meatAll: number; vegPaid: number; vegAll: number };
+  const emptyDiet = (): DietStats => ({ meatPaid: 0, meatAll: 0, vegPaid: 0, vegAll: 0 });
+  const dietBySession = new Map<string, DietStats>();
+  const dietByCategory = new Map<string, DietStats>();
+  for (const r of registrations ?? []) {
+    if (r.is_cancelled || r.admission_status !== "正取") continue;
+    const d = dietByRegistration.get(r.id) ?? { meat: 0, veg: 0 };
+    const paid = r.payment_status !== "待繳費";
+    const targets = [dietBySession, ...(r.registration_category_id ? [dietByCategory] : [])];
+    for (const map of targets) {
+      const key = map === dietBySession ? r.session_id : r.registration_category_id!;
+      const s = map.get(key) ?? emptyDiet();
+      s.meatAll += d.meat;
+      s.vegAll += d.veg;
+      if (paid) {
+        s.meatPaid += d.meat;
+        s.vegPaid += d.veg;
+      }
+      map.set(key, s);
+    }
   }
 
   const seriesNameMap = new Map((series ?? []).map((s) => [s.id, s.name]));
@@ -239,6 +268,21 @@ export default async function DashboardPage() {
                   <Stat label="已取消" value={stats.cancelledGroups} />
                 </div>
 
+                {(() => {
+                  const d = dietBySession.get(s.id) ?? emptyDiet();
+                  return (
+                    <div>
+                      <p className="text-muted-foreground mb-1.5">
+                        餐點葷素（每餐份數：正取且非未繳費 / 全部正取）
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Stat label="葷食" value={`${d.meatPaid} / ${d.meatAll}`} />
+                        <Stat label="素食" value={`${d.vegPaid} / ${d.vegAll}`} />
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {sessionCategories.length > 0 && (
                   <div data-tour={isFirst ? "dashboard-category-stats" : undefined}>
                     <p className="text-muted-foreground mb-1.5 text-base">依報名類別</p>
@@ -286,6 +330,15 @@ export default async function DashboardPage() {
                                 {catStat.admittedPeople}
                               </span>
                             </p>
+                            {(() => {
+                              const d = dietByCategory.get(rc.id) ?? emptyDiet();
+                              return (
+                                <p className="text-muted-foreground text-sm">
+                                  葷 <span className="text-foreground font-semibold">{d.meatPaid}</span>/{d.meatAll}
+                                  ・素 <span className="text-foreground font-semibold">{d.vegPaid}</span>/{d.vegAll}
+                                </p>
+                              );
+                            })()}
                           </div>
                         );
                       })}
