@@ -107,7 +107,7 @@ ${rows.map(([k, v]) => `<tr><td style="${TH}">${k}</td><td style="${TD}">${v}</t
     gearReminder.length > 0
       ? `<p style="${P}"><strong>★物資提醒：本帳${gearReminder.join("；")}。${
           input.sleepingBagProvided > 0 || input.comfortBedRequested ? "借用物資請於報到時攜帶證件抵押領取。" : ""
-        }如與實際需求不符，請於活動前電洽公所。</strong></p>`
+        }</strong></p>`
       : "";
 
   const replyAsk = input.selfPitch
