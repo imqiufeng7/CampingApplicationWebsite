@@ -219,6 +219,7 @@ export function ReviewTable({
   const [cancelledFilter, setCancelledFilter] = useState("");
   const [duplicateFilter, setDuplicateFilter] = useState("");
   const [noticeFilter, setNoticeFilter] = useState("");
+  const [dietFilter, setDietFilter] = useState("");
   // Lifted out of the per-row "證明文件" cell — one dialog instance at the table
   // level, driven by which registration is selected, rather than each row owning its
   // own <Dialog>. A row-nested dialog would tear down (along with its open state)
@@ -327,6 +328,7 @@ export function ReviewTable({
         if (noticeFilter === "replied" && !r.notice_replied_at) return false;
         if (noticeFilter === "not_replied" && (!isNoticeEligible(r) || r.notice_replied_at)) return false;
         if (noticeFilter === "not_sent" && (!isNoticeEligible(r) || r.notice_sent_at)) return false;
+        if (dietFilter === "veg" && !r.members.some((m) => m.meal_diet === "素")) return false;
         if (!term) return true;
         if (activeIdNumberHash && r.members.some((m) => m.id_number_hash === activeIdNumberHash)) {
           return true;
@@ -352,6 +354,7 @@ export function ReviewTable({
     cancelledFilter,
     duplicateFilter,
     noticeFilter,
+    dietFilter,
     orderIndex,
   ]);
 
@@ -491,8 +494,15 @@ export function ReviewTable({
           accessorFn: (r) => r.memberNames.join(" "),
           cell: ({ row }) => (
             <div className="grid">
-              {row.original.memberNames.map((name, i) => (
-                <span key={i}>{name}</span>
+              {row.original.members.map((m) => (
+                <span key={m.id} className="whitespace-nowrap">
+                  {m.name}
+                  {m.meal_diet === "素" && (
+                    <span className="ml-1 rounded bg-green-100 px-1 text-xs font-medium text-green-900 dark:bg-green-900/40 dark:text-green-200">
+                      素
+                    </span>
+                  )}
+                </span>
               ))}
             </div>
           ),
@@ -975,6 +985,14 @@ export function ReviewTable({
           <option value="replied">已回覆</option>
           <option value="not_replied">未回覆（應回覆者）</option>
           <option value="not_sent">尚未寄送（應寄送者）</option>
+        </select>
+        <select
+          value={dietFilter}
+          onChange={(e) => setDietFilter(e.target.value)}
+          className="border-input h-8 rounded-lg border bg-transparent px-2 text-sm"
+        >
+          <option value="">全部（葷素）</option>
+          <option value="veg">只看有素食的</option>
         </select>
 
         <DropdownMenu>
