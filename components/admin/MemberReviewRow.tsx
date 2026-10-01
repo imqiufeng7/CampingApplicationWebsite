@@ -36,6 +36,7 @@ export function MemberReviewRow({
     org_selected: string | null;
     org_other_text: string | null;
     fee_review_result: string;
+    meal_diet: string | null;
   };
   idNumber: string | null;
   identityTypeName: string | null;
@@ -58,6 +59,15 @@ export function MemberReviewRow({
             {member.org_selected}
             {member.org_other_text ? `（${member.org_other_text}）` : ""}
           </div>
+        )}
+      </TableCell>
+      <TableCell>
+        {member.meal_diet === "素" ? (
+          <span className="rounded bg-green-100 px-1.5 py-0.5 font-medium text-green-900 dark:bg-green-900/40 dark:text-green-200">
+            素
+          </span>
+        ) : (
+          (member.meal_diet ?? "-")
         )}
       </TableCell>
       <TableCell>{feeCategoryLabel ?? "未申請"}</TableCell>

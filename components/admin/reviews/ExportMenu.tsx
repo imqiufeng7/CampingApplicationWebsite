@@ -183,6 +183,26 @@ export function ExportMenu({
     downloadCsv("完整報名資料.csv", toCsv(headers, data));
   }
 
+  // For the caterer: one row per vegetarian among 正取 groups that aren't cancelled.
+  function exportVegetarians() {
+    const admitted = rows
+      .filter((r) => !r.is_cancelled && r.admission_status === "正取")
+      .sort((a, b) => tentNoOf(a).localeCompare(tentNoOf(b), "en", { numeric: true }));
+    const headers = ["帳篷編號", "報名編號", "報名類別", "姓名", "繳費狀態"];
+    const data = admitted.flatMap((r) =>
+      r.members
+        .filter((m) => m.meal_diet === "素")
+        .map((m) => [
+          excelText(tentNoOf(r)),
+          formatRegistrationNo(r.registration_seq),
+          categoryLabel(r),
+          m.name,
+          r.payment_status,
+        ])
+    );
+    downloadCsv(`${sessionName}素食名單.csv`, toCsv(headers, data));
+  }
+
   // For the 公所 arranging vehicle entry: every 自搭帳 group expected to show up,
   // whether or not they've replied yet, so the gaps are visible.
   function exportPlates() {
@@ -251,6 +271,7 @@ export function ExportMenu({
         <DropdownMenuItem onClick={exportReceipt}>收據開立用資料</DropdownMenuItem>
         <DropdownMenuItem onClick={exportCheckin}>報到使用資料</DropdownMenuItem>
         <DropdownMenuItem onClick={exportAdmitted}>錄取名單</DropdownMenuItem>
+        <DropdownMenuItem onClick={exportVegetarians}>素食名單</DropdownMenuItem>
         {freeCategoryIds.size > 0 && (
           <DropdownMenuItem onClick={exportPlates}>自搭帳車牌清單</DropdownMenuItem>
         )}

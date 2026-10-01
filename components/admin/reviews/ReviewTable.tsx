@@ -72,6 +72,7 @@ export type ReviewRowMember = {
   birth_month: number | null;
   birth_day: number | null;
   id_number_hash: string | null;
+  meal_diet: string | null;
 };
 
 export type ReviewRowFile = { id: string; member_id: string | null; file_type: string; storage_path: string };

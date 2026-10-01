@@ -184,6 +184,7 @@ export default async function RegistrationDetailPage({
               <TableRow>
                 <TableHead>姓名/身分證字號</TableHead>
                 <TableHead>身分別/單位</TableHead>
+                <TableHead>葷/素</TableHead>
                 <TableHead>申請類別</TableHead>
                 <TableHead>審核結果</TableHead>
                 <TableHead>證明文件</TableHead>
