@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   ): Promise<PreEventNoticeInput> {
     const { data: members } = await admin
       .from("registration_members")
-      .select("name")
+      .select("name, meal_diet")
       .eq("registration_id", r.id)
       .order("member_order", { ascending: true });
     return {
@@ -102,6 +102,8 @@ export async function POST(request: Request) {
       sleepingBagOwn: r.sleeping_bag_own_qty,
       sleepingBagProvided: r.sleeping_bag_rent_qty,
       comfortBedRequested: r.comfort_bed_needed === "需要",
+      mealVeg: (members ?? []).filter((m) => m.meal_diet === "素").length,
+      mealMeat: (members ?? []).filter((m) => m.meal_diet !== "素").length,
       officeContact: session!.office_contact!,
       unloadEntrance: session!.unload_entrance,
       replyUrl,
