@@ -17,9 +17,6 @@ export interface PreEventNoticeInput {
   sleepingBagProvided: number;
   // registrations.comfort_bed_needed === "需要"
   comfortBedRequested: boolean;
-  // registration_members.meal_diet counts (one choice per person, applies to every meal)
-  mealMeat: number;
-  mealVeg: number;
   officeContact: string;
   // event_sessions.unload_entrance — where 自搭帳 vehicles unload (e.g. 大成路一段)
   unloadEntrance: string | null;
@@ -86,7 +83,6 @@ export function buildPreEventNoticeBody(input: PreEventNoticeInput): string {
     ["參加人數", `${input.memberCount}人`],
     ["睡袋(墊)", `自備 ${input.sleepingBagOwn} 份／機關提供 ${input.sleepingBagProvided} 份`],
     ["福慧床借用", input.comfortBedRequested ? "已申請借用" : "未申請"],
-    ["餐點(每餐)", `葷食 ${input.mealMeat} 份／素食 ${input.mealVeg} 份`],
   ];
   // Red, like the original template's 「(請回填)」.
   if (input.selfPitch)
@@ -112,11 +108,10 @@ ${rows.map(([k, v]) => `<tr><td style="${TH}">${k}</td><td style="${TD}">${v}</t
     input.sleepingBagOwn > 0 ? `自備睡袋(墊) ${input.sleepingBagOwn} 份，請記得自行攜帶` : null,
     input.sleepingBagProvided > 0 ? `機關提供睡袋(墊) ${input.sleepingBagProvided} 份` : null,
     input.comfortBedRequested ? "已申請借用福慧床" : null,
-    `餐點每餐葷食 ${input.mealMeat} 份、素食 ${input.mealVeg} 份`,
   ].filter(Boolean);
   const gearNote =
     gearReminder.length > 0
-      ? `<p style="${P}"><strong>★物資及餐點提醒：本帳${gearReminder.join("；")}。${
+      ? `<p style="${P}"><strong>★物資提醒：本帳${gearReminder.join("；")}。${
           input.sleepingBagProvided > 0 || input.comfortBedRequested ? "借用物資請於報到時攜帶證件抵押領取。" : ""
         }</strong></p>`
       : "";
