@@ -223,9 +223,13 @@ export function ExportMenu({
     downloadCsv(`${sessionName}自搭帳車牌清單.csv`, toCsv(headers, data));
   }
 
+  // Receipts are only for money actually received — payment_amount is what's owed,
+  // so 待繳費 / 無需繳費 rows would otherwise inflate the total. Cancelled-but-paid
+  // groups stay in: the money was still received.
   function exportReceipt() {
     const headers = ["編號", "主要聯絡人姓名", "付款金額", "付款方式", "電話"];
-    const data = rows.map((r) => [
+    const paid = rows.filter((r) => r.payment_status === "已完成" && r.payment_amount > 0);
+    const data = paid.map((r) => [
       formatRegistrationNo(r.registration_seq),
       r.memberNames[0] ?? "",
       r.payment_amount,
